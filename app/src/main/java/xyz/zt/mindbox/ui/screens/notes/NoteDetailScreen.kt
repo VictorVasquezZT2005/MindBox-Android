@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,35 +19,63 @@ import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewNoteScreen(navController: NavController, viewModel: NotesViewModel) {
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
-    var selectedType by remember { mutableStateOf("Personal") }
-    val types = listOf("Personal", "Trabajo", "Idea", "Urgente")
+fun NoteDetailScreen(navController: NavController, viewModel: NotesViewModel, noteId: String) {
+    // Buscamos la nota existente
+    val note = viewModel.notes.find { it.id == noteId } ?: return
     val colorScheme = MaterialTheme.colorScheme
+
+    // Estados para la edición
+    val lines = note.content.lines()
+    var title by remember { mutableStateOf(lines.firstOrNull() ?: "") }
+    var content by remember { mutableStateOf(if (lines.size > 1) lines.drop(1).joinToString("\n") else "") }
+    var type by remember { mutableStateOf(note.type) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val types = listOf("Personal", "Trabajo", "Idea", "Urgente")
+
+    // Diálogo de borrado
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("¿Eliminar nota?") },
+            text = { Text("Esta hoja se borrará permanentemente del cuaderno.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteNote(noteId)
+                    showDeleteDialog = false
+                    navController.popBackStack()
+                }) { Text("Eliminar", color = Color.Red) }
+            },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") } }
+        )
+    }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Nueva Nota", fontWeight = FontWeight.Bold) },
+                title = { Text("Editar Nota", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    // Cambiado de "Cerrar" a icono de X
+                    // Cambiado de texto a Icono de X
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.Close, contentDescription = "Cerrar")
                     }
                 },
                 actions = {
-                    // Cambiado de "Listo" a icono de Cheque
+                    // Botón de eliminar
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Red.copy(alpha = 0.6f))
+                    }
+                    // Cambiado de "Listo" a Icono de Cheque
                     IconButton(onClick = {
-                        val full = if (title.isNotBlank()) "$title\n$content" else content
-                        viewModel.addNote(full, selectedType) { success ->
+                        val fullText = if (title.isNotBlank()) "$title\n$content" else content
+                        viewModel.updateNote(noteId, fullText, type) { success ->
                             if (success) navController.popBackStack()
                         }
                     }) {
                         Icon(
                             Icons.Default.Done,
                             contentDescription = "Guardar",
-                            tint = colorScheme.primary // Color resaltado para guardar
+                            tint = colorScheme.primary
                         )
                     }
                 }
@@ -59,7 +88,7 @@ fun NewNoteScreen(navController: NavController, viewModel: NotesViewModel) {
                 .padding(padding)
                 .background(colorScheme.surface)
         ) {
-            // Selector de tipo (Chips con colores específicos)
+            // Selector de tipo
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -75,8 +104,8 @@ fun NewNoteScreen(navController: NavController, viewModel: NotesViewModel) {
                     }
 
                     FilterChip(
-                        selected = selectedType == t,
-                        onClick = { selectedType = t },
+                        selected = type == t,
+                        onClick = { type = t },
                         label = { Text(t) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = selectedChipColor,
@@ -86,7 +115,7 @@ fun NewNoteScreen(navController: NavController, viewModel: NotesViewModel) {
                 }
             }
 
-            // Campo de Título
+            // Título
             TextField(
                 value = title,
                 onValueChange = { title = it },
@@ -101,7 +130,7 @@ fun NewNoteScreen(navController: NavController, viewModel: NotesViewModel) {
                 )
             )
 
-            // Contenedor con líneas de cuaderno
+            // Contenido con líneas
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -110,12 +139,7 @@ fun NewNoteScreen(navController: NavController, viewModel: NotesViewModel) {
                         var y = 0f
                         val lineColor = colorScheme.onSurface.copy(alpha = 0.1f)
                         while (y < size.height) {
-                            drawLine(
-                                color = lineColor,
-                                start = Offset(0f, y),
-                                end = Offset(size.width, y),
-                                strokeWidth = 1.dp.toPx()
-                            )
+                            drawLine(lineColor, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
                             y += step
                         }
                     }

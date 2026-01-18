@@ -1,10 +1,8 @@
 package xyz.zt.mindbox.ui.login
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Inventory2
@@ -15,27 +13,28 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.launch
+import xyz.zt.mindbox.R // Asegúrate de tener ic_google en drawable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onNavigateToRegister: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
-
-    // --- PALETA DE COLORES (Basada en tu HTML) ---
-    val backgroundDark = Color(0xFF101622)
-    val slateCustom = Color(0xFF192233)
-    val borderCustom = Color(0xFF324467)
-    val primaryBlue = Color(0xFF135BEC)
-    val textSecondary = Color(0xFF92A4C9)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     // --- ESTADOS ---
     var email by remember { mutableStateOf("") }
@@ -44,213 +43,161 @@ fun LoginScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
 
+    val isFormValid = email.isNotBlank() && password.isNotBlank()
+
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = backgroundDark
+        color = MaterialTheme.colorScheme.background
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState()), // Permite scroll si el teclado estorba
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(60.dp))
+            Spacer(modifier = Modifier.height(64.dp))
 
-            // --- LOGO (Icono de Caja) ---
+            // --- LOGO ---
             Box(
                 modifier = Modifier
                     .size(96.dp)
-                    .background(primaryBlue, RoundedCornerShape(16.dp)),
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.extraLarge
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Inventory2,
                     contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(60.dp)
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(48.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- CABECERA ---
             Text(
-                text = "Welcome back",
+                text = "Bienvenido de nuevo",
                 style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    fontSize = 32.sp
+                    fontWeight = FontWeight.Bold
                 )
-            )
-
-            Text(
-                text = "Sign in to access your secure notes",
-                color = textSecondary,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(top = 8.dp),
-                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // --- CAMPO EMAIL ---
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Email address",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-                )
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    placeholder = { Text("name@example.com", color = textSecondary) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = slateCustom,
-                        unfocusedContainerColor = slateCustom,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = primaryBlue,
-                        unfocusedBorderColor = borderCustom,
-                        cursorColor = primaryBlue
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // --- CAMPO CONTRASEÑA ---
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Password",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-                )
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    placeholder = { Text("Enter your password", color = textSecondary) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = null,
-                                tint = textSecondary
-                            )
-                        }
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = slateCustom,
-                        unfocusedContainerColor = slateCustom,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = primaryBlue,
-                        unfocusedBorderColor = borderCustom,
-                        cursorColor = primaryBlue
-                    ),
-                    singleLine = true
-                )
-            }
-
-            // Forgot Password
-            Text(
-                text = "Forgot Password?",
-                color = primaryBlue,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .padding(top = 12.dp),
-                fontSize = 14.sp
+            // --- CAMPOS DE TEXTO (EMAIL Y PASS) ---
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it; error = null },
+                label = { Text("Correo electrónico") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // --- BOTÓN PRINCIPAL ---
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it; error = null },
+                label = { Text("Contraseña") },
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = null
+                        )
+                    }
+                },
+                singleLine = true
+            )
+
+            TextButton(
+                onClick = onNavigateToForgotPassword,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("¿Olvidaste tu contraseña?")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- BOTÓN LOGIN EMAIL ---
             Button(
                 onClick = {
                     loading = true
-                    error = null
-                    auth.signInWithEmailAndPassword(email, password)
-                        .addOnSuccessListener {
-                            loading = false
-                            onLoginSuccess()
-                        }
+                    auth.signInWithEmailAndPassword(email.trim(), password)
+                        .addOnSuccessListener { onLoginSuccess() }
                         .addOnFailureListener {
                             loading = false
-                            error = "Invalid email or password"
+                            error = "Credenciales inválidas"
                         }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = primaryBlue),
-                enabled = !loading
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                enabled = !loading && isFormValid
             ) {
-                if (loading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
-                    Text("Sign In", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                }
+                if (loading) CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                else Text("Iniciar sesión")
             }
 
             // --- SEPARADOR ---
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                HorizontalDivider(modifier = Modifier.weight(1f), color = borderCustom)
-                Text(
-                    text = "or continue with",
-                    color = textSecondary,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                HorizontalDivider(modifier = Modifier.weight(1f), color = borderCustom)
+                HorizontalDivider(modifier = Modifier.weight(1f))
+                Text("o", modifier = Modifier.padding(horizontal = 16.dp))
+                HorizontalDivider(modifier = Modifier.weight(1f))
             }
 
             // --- BOTÓN GOOGLE ---
             OutlinedButton(
-                onClick = { /* Implementar Google Auth */ },
+                onClick = {
+                    scope.launch {
+                        loading = true
+                        try {
+                            // IMPORTANTE: Debes configurar el Web Client ID en este Helper
+                            val user = GoogleAuthHelper.doGoogleSignIn(context)
+                            if (user != null) onLoginSuccess()
+                        } catch (e: Exception) {
+                            error = "Error con Google: ${e.localizedMessage}"
+                        } finally {
+                            loading = false
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, borderCustom),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                enabled = !loading
             ) {
-                Text("Google", fontWeight = FontWeight.Medium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_google),
+                        contentDescription = null,
+                        tint = Color.Unspecified, // Mantiene los colores de la G
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("Continuar con Google")
+                }
             }
 
             if (error != null) {
-                Text(
-                    text = error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 16.dp),
-                    textAlign = TextAlign.Center
-                )
+                Text(error!!, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 16.dp))
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
             // --- FOOTER ---
             Row(
                 modifier = Modifier.padding(bottom = 32.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Don't have an account?", color = textSecondary, fontSize = 14.sp)
-                Text(
-                    text = " Sign Up",
-                    color = primaryBlue,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("¿No tienes una cuenta?")
+                TextButton(onClick = onNavigateToRegister) {
+                    Text("Regístrate", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
