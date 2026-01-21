@@ -52,11 +52,7 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "¿Olvidaste tu contraseña?",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = "¿Olvidaste tu contraseña?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
 
             Text(
                 text = "Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.",
@@ -84,7 +80,7 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
                             loading = false
                             if (task.isSuccessful) {
                                 isError = false
-                                message = "Enlace enviado. Revisa tu bandeja de entrada."
+                                message = "Enlace enviado. Revisa tu correo."
                             } else {
                                 isError = true
                                 message = task.exception?.localizedMessage ?: "Error al enviar"
@@ -94,8 +90,15 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 enabled = !loading && email.isNotBlank()
             ) {
-                if (loading) CircularProgressIndicator(size = 24.dp)
-                else Text("Enviar enlace")
+                if (loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Enviar enlace")
+                }
             }
 
             if (message != null) {

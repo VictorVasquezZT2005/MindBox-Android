@@ -16,6 +16,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +26,7 @@ fun RegisterScreen(
     onBack: () -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
 
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -56,17 +59,7 @@ fun RegisterScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Únete a MindBox",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "Organiza tus ideas de forma segura",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(text = "Únete a MindBox", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -98,10 +91,7 @@ fun RegisterScreen(
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = null
-                        )
+                        Icon(imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, contentDescription = null)
                     }
                 },
                 singleLine = true
@@ -113,35 +103,46 @@ fun RegisterScreen(
                 onClick = {
                     loading = true
                     auth.createUserWithEmailAndPassword(email.trim(), password)
-                        .addOnSuccessListener {
-                            // Opcional: Aquí podrías actualizar el perfil del usuario con el nombre
-                            val profileUpdates = com.google.firebase.auth.userProfileChangeRequest.Builder()
-                                .setDisplayName(name)
-                                .build()
-                            it.user?.updateProfile(profileUpdates)
+                        .addOnSuccessListener { result ->
+                            val uid = result.user?.uid ?: ""
+                            val userData = hashMapOf(
+                                "name" to name,
+                                "email" to email.trim(),
+                                "lastUpdate" to Date()
+                            )
 
-                            loading = false
-                            onRegisterSuccess()
+                            // Guardar en Firestore para que aparezca en tu tabla "users"
+                            db.collection("users").document(uid).set(userData)
+                                .addOnSuccessListener {
+                                    loading = false
+                                    onRegisterSuccess()
+                                }
+                                .addOnFailureListener {
+                                    loading = false
+                                    error = "Usuario creado, pero error en base de datos."
+                                }
                         }
                         .addOnFailureListener {
                             loading = false
-                            error = it.localizedMessage ?: "Error al registrar"
+                            error = it.localizedMessage
                         }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 enabled = !loading && isFormValid
             ) {
-                if (loading) CircularProgressIndicator(size = 24.dp)
-                else Text("Registrarse")
+                if (loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Registrarse")
+                }
             }
 
             if (error != null) {
-                Text(
-                    text = error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 16.dp),
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Text(text = error!!, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 16.dp))
             }
         }
     }

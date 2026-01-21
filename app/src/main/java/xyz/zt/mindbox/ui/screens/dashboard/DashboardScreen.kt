@@ -28,19 +28,17 @@ fun DashboardScreen(
     notesViewModel: NotesViewModel,
     onLogout: () -> Unit
 ) {
+    // Obtenemos los datos del usuario actual de Firebase
     val currentUser = remember { FirebaseAuth.getInstance().currentUser }
     val userName = currentUser?.displayName ?: currentUser?.email?.substringBefore("@") ?: "Usuario"
 
-    // Usamos Box para tener control total sobre la posición sin que Scaffold fuerce el padding
     Scaffold { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-            // Usamos solo el padding lateral y un pequeño top para alinear con las otras screens
         ) {
-            // Ajustamos el Spacer para que el título "MindBox" quede a la misma altura
-            // que "Mis Notas", "Recordatorios", etc.
+            // Espaciador superior para alinear con el resto de pantallas
             Spacer(modifier = Modifier.height(56.dp))
 
             // --- CABECERA ---
@@ -88,12 +86,13 @@ fun DashboardScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // --- GRID ---
+            // --- GRID DE ACCIONES RÁPIDAS ---
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Acción: Nueva Nota
                 item {
                     QuickActionCard(
                         title = "Nueva Nota",
@@ -102,6 +101,8 @@ fun DashboardScreen(
                         onClick = { navController.navigate("new_note") }
                     )
                 }
+
+                // Acción: Recordatorios
                 item {
                     QuickActionCard(
                         title = "Recordatorio",
@@ -110,12 +111,17 @@ fun DashboardScreen(
                         onClick = { navController.navigate(BottomNavItem.Reminders.route) }
                     )
                 }
+
+                // Acción: Nueva Contraseña (Acceso directo al diálogo)
                 item {
                     QuickActionCard(
                         title = "Contraseña",
                         icon = Icons.Rounded.VpnKey,
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        onClick = { navController.navigate(BottomNavItem.Passwords.route) }
+                        onClick = {
+                            // Navega a Passwords pasándole el parámetro para abrir el diálogo de creación
+                            navController.navigate("${BottomNavItem.Passwords.route}?showAdd=true")
+                        }
                     )
                 }
             }
