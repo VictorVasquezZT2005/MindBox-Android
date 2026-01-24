@@ -18,11 +18,9 @@ object ResumeHelper {
         val canvas = page.canvas
         val paint = Paint()
 
-        // --- DISEÑO: BARRA LATERAL (Gris Oscuro) ---
         paint.color = Color.parseColor("#263238")
         canvas.drawRect(0f, 0f, 200f, 792f, paint)
 
-        // FOTO (Tamaño Título Profesional)
         data.photoUri?.let { uri ->
             try {
                 val inputStream = context.contentResolver.openInputStream(uri)
@@ -32,30 +30,40 @@ object ResumeHelper {
             } catch (e: Exception) { e.printStackTrace() }
         }
 
-        // TEXTO BARRA LATERAL (DATOS PERSONALES)
         paint.color = Color.WHITE
         paint.textSize = 10f
         var ySide = 250f
 
-        canvas.drawText("CONTACTO", 30f, ySide, paint.apply { isFakeBoldText = true }); ySide += 20f
-        paint.isFakeBoldText = false
-        canvas.drawText(data.personalInfo.phone, 30f, ySide, paint); ySide += 15f
-        canvas.drawText(data.personalInfo.email, 30f, ySide, paint); ySide += 30f
-
-        canvas.drawText("DIRECCIÓN", 30f, ySide, paint.apply { isFakeBoldText = true }); ySide += 20f
-        paint.isFakeBoldText = false
-        val addressLines = data.personalInfo.address.chunked(25)
-        addressLines.forEach { line -> canvas.drawText(line, 30f, ySide, paint); ySide += 15f }
-
-        ySide += 20f
-        canvas.drawText("IDIOMAS", 30f, ySide, paint.apply { isFakeBoldText = true }); ySide += 20f
-        paint.isFakeBoldText = false
-        data.languages.forEach {
-            canvas.drawText("${it.name}: ${it.level}", 30f, ySide, paint); ySide += 15f
+        if (data.personalInfo.phone.isNotEmpty() || data.personalInfo.email.isNotEmpty()) {
+            canvas.drawText("CONTACTO", 30f, ySide, paint.apply { isFakeBoldText = true }); ySide += 20f
+            paint.isFakeBoldText = false
+            if (data.personalInfo.phone.isNotEmpty()) {
+                canvas.drawText(data.personalInfo.phone, 30f, ySide, paint); ySide += 15f
+            }
+            if (data.personalInfo.email.isNotEmpty()) {
+                canvas.drawText(data.personalInfo.email, 30f, ySide, paint); ySide += 15f
+            }
+            ySide += 15f
         }
 
-        // --- CUERPO PRINCIPAL ---
-        paint.color = Color.parseColor("#1A237E") // Azul Profundo
+        if (data.personalInfo.address.isNotEmpty()) {
+            canvas.drawText("DIRECCIÓN", 30f, ySide, paint.apply { isFakeBoldText = true }); ySide += 20f
+            paint.isFakeBoldText = false
+            val addressLines = data.personalInfo.address.chunked(25)
+            addressLines.forEach { line -> canvas.drawText(line, 30f, ySide, paint); ySide += 15f }
+            ySide += 5f
+        }
+
+        if (data.languages.isNotEmpty()) {
+            ySide += 20f
+            canvas.drawText("IDIOMAS", 30f, ySide, paint.apply { isFakeBoldText = true }); ySide += 20f
+            paint.isFakeBoldText = false
+            data.languages.forEach {
+                canvas.drawText("${it.name}: ${it.level}", 30f, ySide, paint); ySide += 15f
+            }
+        }
+
+        paint.color = Color.parseColor("#1A237E")
         paint.textSize = 24f
         paint.isFakeBoldText = true
         canvas.drawText(data.personalInfo.name.uppercase(), 220f, 70f, paint)
@@ -69,7 +77,6 @@ object ResumeHelper {
 
         var y = 140f
 
-        // --- EXPERIENCIA LABORAL ---
         if (data.experiences.isNotEmpty()) {
             drawHeader(canvas, paint, "EXPERIENCIA LABORAL", 220f, y)
             y += 30f
@@ -89,7 +96,6 @@ object ResumeHelper {
             y += 10f
         }
 
-        // --- FORMACIÓN ACADÉMICA ---
         drawHeader(canvas, paint, "FORMACIÓN ACADÉMICA", 220f, y)
         y += 30f
         paint.textSize = 10f
@@ -123,7 +129,6 @@ object ResumeHelper {
             y += 18f
         }
 
-        // --- CURSOS Y CERTIFICACIONES (desde Firebase) ---
         if (certificates.isNotEmpty()) {
             y += 10f
             paint.textSize = 11f
@@ -144,9 +149,9 @@ object ResumeHelper {
                 paint.color = Color.BLACK
                 y += 16f
             }
+            y += 5f
         }
 
-        // --- HABILIDADES ---
         if (data.skills.isNotEmpty()) {
             y += 15f
             drawHeader(canvas, paint, "HABILIDADES", 220f, y)
@@ -161,7 +166,6 @@ object ResumeHelper {
             }
         }
 
-        // --- REFERENCIAS ---
         if (data.references.isNotEmpty()) {
             y += 15f
             drawHeader(canvas, paint, "REFERENCIAS", 220f, y)

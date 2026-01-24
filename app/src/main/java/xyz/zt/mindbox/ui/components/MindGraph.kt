@@ -21,7 +21,6 @@ data class Node(
 
 @Composable
 fun MindGraphBackground(modifier: Modifier = Modifier, nodeCount: Int = 18) {
-    // Usamos el color primario del tema para los nodos
     val primaryColor = MaterialTheme.colorScheme.primary
     val lineColor = MaterialTheme.colorScheme.outline
 
@@ -30,7 +29,7 @@ fun MindGraphBackground(modifier: Modifier = Modifier, nodeCount: Int = 18) {
             Node(
                 x = Random.nextFloat(),
                 y = Random.nextFloat(),
-                vx = (Random.nextFloat() - 0.5f) * 0.003f, // Velocidad un poco más fluida
+                vx = (Random.nextFloat() - 0.5f) * 0.003f,
                 vy = (Random.nextFloat() - 0.5f) * 0.003f,
                 color = primaryColor.copy(alpha = Random.nextFloat().coerceAtLeast(0.4f))
             )
@@ -51,10 +50,8 @@ fun MindGraphBackground(modifier: Modifier = Modifier, nodeCount: Int = 18) {
         val width = size.width
         val height = size.height
 
-        // Forzar recomposición con el progreso de la animación
         animProgress
 
-        // 1. Actualizar posiciones y rebotar en los bordes
         nodes.forEach { node ->
             node.x += node.vx
             node.y += node.vy
@@ -63,7 +60,6 @@ fun MindGraphBackground(modifier: Modifier = Modifier, nodeCount: Int = 18) {
             if (node.y <= 0f || node.y >= 1f) node.vy *= -1f
         }
 
-        // 2. Dibujar Conexiones (Bucle corregido)
         for (i in 0 until nodes.size) {
             for (j in i + 1 until nodes.size) {
                 val nodeA = nodes[i]
@@ -73,7 +69,6 @@ fun MindGraphBackground(modifier: Modifier = Modifier, nodeCount: Int = 18) {
                 val dy = (nodeA.y - nodeB.y) * height
                 val distance = kotlin.math.sqrt(dx * dx + dy * dy)
 
-                // Solo dibujar línea si los puntos están cerca (efecto de red)
                 if (distance < 400f) {
                     val opacity = (1f - (distance / 400f)).coerceIn(0f, 1f)
                     drawLine(
@@ -86,7 +81,6 @@ fun MindGraphBackground(modifier: Modifier = Modifier, nodeCount: Int = 18) {
             }
         }
 
-        // 3. Dibujar Nodos (Puntos)
         nodes.forEach { node ->
             drawCircle(
                 color = node.color,

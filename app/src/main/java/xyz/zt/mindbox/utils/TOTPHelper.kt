@@ -5,7 +5,7 @@ import java.util.Locale
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import kotlin.math.pow
-import org.apache.commons.codec.binary.Base32 // Asegúrate de tener esta dependencia o una similar
+import org.apache.commons.codec.binary.Base32
 
 object TOTPHelper {
 
@@ -14,9 +14,8 @@ object TOTPHelper {
 
         return try {
             val clean = secretKey.replace(" ", "").uppercase().trim()
-            val data = (System.currentTimeMillis() / 1000 / 30) // Intervalo de 30 seg
+            val data = (System.currentTimeMillis() / 1000 / 30)
 
-            // Decodificar Base32 (formato estándar de QR de Google Auth)
             val bytes = Base32().decode(clean)
 
             val counter = ByteArray(8)

@@ -39,7 +39,6 @@ object GoogleAuthHelper {
                 val authResult = auth.signInWithCredential(firebaseCredential).await()
                 val user = authResult.user
 
-                // Sincronizar con Firestore si el usuario es nuevo
                 user?.let {
                     val userDoc = db.collection("users").document(it.uid).get().await()
                     if (!userDoc.exists()) {

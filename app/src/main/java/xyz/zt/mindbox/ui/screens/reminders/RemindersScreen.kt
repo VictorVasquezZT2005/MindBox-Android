@@ -28,7 +28,6 @@ fun RemindersScreen(navController: NavController, viewModel: RemindersViewModel)
     var searchQuery by remember { mutableStateOf("") }
     val reminders = viewModel.reminders
 
-    // --- LÓGICA DE FILTROS DINÁMICOS ---
     val dynamicCategories = remember(reminders) {
         val uniqueCategories = reminders.map { it.listCategory }.distinct().sorted()
         listOf("Todas") + uniqueCategories
@@ -159,8 +158,6 @@ fun RemindersScreen(navController: NavController, viewModel: RemindersViewModel)
                                     }) {
                                         Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
                                     }
-
-                                    // ETIQUETA DE LISTA ELIMINADA DE AQUÍ
                                 }
 
                                 if (reminder.notes.isNotBlank()) {

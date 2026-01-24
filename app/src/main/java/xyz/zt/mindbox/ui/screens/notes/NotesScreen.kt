@@ -189,7 +189,6 @@ fun NoteNotebookCard(note: Note, colorScheme: ColorScheme, onDelete: () -> Unit,
                     )
 
                     Row {
-                        // AQUÍ ESTÁ LA CORRECCIÓN: shareAsPdf en lugar de shareAsText
                         IconButton(onClick = { ShareHelper.shareAsPdf(context, note) }) {
                             Icon(
                                 Icons.Default.Share,

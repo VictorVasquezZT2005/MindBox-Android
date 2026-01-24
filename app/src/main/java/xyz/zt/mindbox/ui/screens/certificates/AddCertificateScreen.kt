@@ -5,7 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll // IMPORTANTE: Este faltaba
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,7 +37,6 @@ fun AddCertificateScreen(navController: NavController) {
     val storage = FirebaseStorage.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-    // Estados del formulario
     var title by remember { mutableStateOf("") }
     var platformType by remember { mutableStateOf("Carlos Slim") }
     var customPlatform by remember { mutableStateOf("") }
@@ -46,7 +45,6 @@ fun AddCertificateScreen(navController: NavController) {
     var notes by remember { mutableStateOf("") }
     var selectedPdfUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Estados de control y fecha
     var isSaving by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
@@ -56,7 +54,6 @@ fun AddCertificateScreen(navController: NavController) {
         selectedPdfUri = uri
     }
 
-    // Lógica del Diálogo de Fecha (Calendario Material You)
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -95,7 +92,6 @@ fun AddCertificateScreen(navController: NavController) {
                                 val finalPlatform = if (platformType == "Otro") customPlatform else platformType
                                 val certId = UUID.randomUUID().toString()
 
-                                // Función para guardar en Firestore
                                 fun uploadAndSave(pdfUrl: String?) {
                                     val cert = Certificate(
                                         id = certId,
@@ -159,7 +155,6 @@ fun AddCertificateScreen(navController: NavController) {
         ) {
             if (isSaving) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
-            // Sección de Plataforma con horizontalScroll corregido
             Text("Plataforma / Emisor", style = MaterialTheme.typography.labelLarge)
             Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                 listOf("Carlos Slim", "Credly", "Otro").forEach { option ->
@@ -182,7 +177,6 @@ fun AddCertificateScreen(navController: NavController) {
                 )
             }
 
-            // Título del curso
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
@@ -191,7 +185,6 @@ fun AddCertificateScreen(navController: NavController) {
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // --- SELECTOR DE FECHA (UI) ---
             OutlinedCard(
                 onClick = { showDatePicker = true },
                 modifier = Modifier.fillMaxWidth(),
@@ -215,7 +208,6 @@ fun AddCertificateScreen(navController: NavController) {
                 }
             }
 
-            // Folio e ID
             OutlinedTextField(
                 value = idInput,
                 onValueChange = { idInput = it },
@@ -224,7 +216,6 @@ fun AddCertificateScreen(navController: NavController) {
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // PDF
             Text("Archivo de respaldo", style = MaterialTheme.typography.labelLarge)
             OutlinedCard(
                 onClick = { pdfLauncher.launch("application/pdf") },
@@ -248,7 +239,6 @@ fun AddCertificateScreen(navController: NavController) {
                 }
             }
 
-            // Notas
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },

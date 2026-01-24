@@ -42,8 +42,7 @@ class MainActivity : ComponentActivity() {
                     BottomNavItem.Dashboard.route,
                     BottomNavItem.Notes.route,
                     BottomNavItem.Reminders.route,
-                    BottomNavItem.Passwords.route,
-                    BottomNavItem.Profile.route
+                    BottomNavItem.Passwords.route
                 )
 
                 Scaffold(
@@ -77,7 +76,6 @@ class MainActivity : ComponentActivity() {
                     },
                     contentWindowInsets = WindowInsets.navigationBars
                 ) { padding ->
-                    // LLAMADA AL GRAFO EXTERNO
                     MindBoxNavGraph(
                         navController = navController,
                         isLoggedIn = isLoggedIn,
@@ -99,5 +97,5 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        }
     }
-}

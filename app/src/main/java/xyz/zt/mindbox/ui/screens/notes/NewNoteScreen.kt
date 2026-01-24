@@ -53,7 +53,6 @@ fun NewNoteScreen(navController: NavController, viewModel: NotesViewModel) {
                 .padding(padding)
                 .background(colorScheme.surface)
         ) {
-            // Chips de tipo con los colores que definiste
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -81,7 +80,6 @@ fun NewNoteScreen(navController: NavController, viewModel: NotesViewModel) {
                 }
             }
 
-            // Título sin indicador de línea
             TextField(
                 value = title,
                 onValueChange = { title = it },
@@ -96,7 +94,6 @@ fun NewNoteScreen(navController: NavController, viewModel: NotesViewModel) {
                 )
             )
 
-            // Espacio de contenido con líneas de cuaderno
             Box(
                 modifier = Modifier
                     .fillMaxSize()

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,28 +15,26 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onLogout: () -> Unit) {
+fun ProfileScreen(navController: NavController, onLogout: () -> Unit) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
     val user = auth.currentUser
     val context = LocalContext.current
 
-    // Estados para los datos
     var name by remember { mutableStateOf(user?.displayName ?: "") }
     var email by remember { mutableStateOf(user?.email ?: "") }
     var password by remember { mutableStateOf("") }
 
-    // Estados de UI
     var isEditing by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 
-    // Función para guardar en Firestore
     fun saveUserData() {
         val uid = user?.uid ?: return
         isLoading = true
@@ -63,6 +62,14 @@ fun ProfileScreen(onLogout: () -> Unit) {
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Mi Perfil") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
                 actions = {
                     if (isEditing) {
                         if (isLoading) {
@@ -104,7 +111,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Campo Nombre
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -114,7 +120,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Campo Email
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -124,7 +129,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Campo Contraseña con botón "Ojito"
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -146,7 +150,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botón Cerrar Sesión
             Button(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth(),

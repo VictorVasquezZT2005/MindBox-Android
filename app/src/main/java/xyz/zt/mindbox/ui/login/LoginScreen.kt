@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.launch
-import xyz.zt.mindbox.R // Asegúrate de tener ic_google en drawable
+import xyz.zt.mindbox.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +36,6 @@ fun LoginScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // --- ESTADOS ---
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -58,7 +57,6 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(64.dp))
 
-            // --- LOGO ---
             Box(
                 modifier = Modifier
                     .size(96.dp)
@@ -87,7 +85,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // --- CAMPOS DE TEXTO (EMAIL Y PASS) ---
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it; error = null },
@@ -124,7 +121,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- BOTÓN LOGIN EMAIL ---
             Button(
                 onClick = {
                     loading = true
@@ -142,7 +138,6 @@ fun LoginScreen(
                 else Text("Iniciar sesión")
             }
 
-            // --- SEPARADOR ---
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -152,13 +147,11 @@ fun LoginScreen(
                 HorizontalDivider(modifier = Modifier.weight(1f))
             }
 
-            // --- BOTÓN GOOGLE ---
             OutlinedButton(
                 onClick = {
                     scope.launch {
                         loading = true
                         try {
-                            // IMPORTANTE: Debes configurar el Web Client ID en este Helper
                             val user = GoogleAuthHelper.doGoogleSignIn(context)
                             if (user != null) onLoginSuccess()
                         } catch (e: Exception) {
@@ -175,7 +168,7 @@ fun LoginScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google),
                         contentDescription = null,
-                        tint = Color.Unspecified, // Mantiene los colores de la G
+                        tint = Color.Unspecified,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -189,7 +182,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // --- FOOTER ---
             Row(
                 modifier = Modifier.padding(bottom = 32.dp),
                 verticalAlignment = Alignment.CenterVertically

@@ -20,11 +20,9 @@ fun QRScannerView(onCodeScanned: (String) -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val executor = ContextCompat.getMainExecutor(context)
 
-    // Usamos remember para mantener la referencia al provider y poder limpiar en onDispose
     var cameraProvider: ProcessCameraProvider? by remember { mutableStateOf(null) }
     var scanned by remember { mutableStateOf(false) }
 
-    // Limpieza al destruir el Composable
     DisposableEffect(Unit) {
         onDispose {
             cameraProvider?.unbindAll()
@@ -51,7 +49,6 @@ fun QRScannerView(onCodeScanned: (String) -> Unit) {
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
 
-                // Aquí aplicamos la anotación directamente en el setAnalyzer
                 analyzer.setAnalyzer(executor) { imageProxy ->
                     processImageProxy(scanner, imageProxy, scanned) { result ->
                         scanned = true
@@ -77,7 +74,6 @@ fun QRScannerView(onCodeScanned: (String) -> Unit) {
     )
 }
 
-// Función auxiliar para separar la lógica y manejar la anotación experimental
 @OptIn(ExperimentalGetImage::class)
 private fun processImageProxy(
     scanner: com.google.mlkit.vision.barcode.BarcodeScanner,
@@ -100,7 +96,6 @@ private fun processImageProxy(
                 }
             }
             .addOnCompleteListener {
-                // Es vital cerrar el imageProxy para que CameraX pueda enviar el siguiente frame
                 imageProxy.close()
             }
     } else {

@@ -111,7 +111,6 @@ fun RegisterScreen(
                                 "lastUpdate" to Date()
                             )
 
-                            // Guardar en Firestore para que aparezca en tu tabla "users"
                             db.collection("users").document(uid).set(userData)
                                 .addOnSuccessListener {
                                     loading = false

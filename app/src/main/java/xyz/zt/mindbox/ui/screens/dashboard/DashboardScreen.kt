@@ -65,7 +65,6 @@ fun DashboardScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- CABECERA ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -91,7 +90,6 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- BIENVENIDA ---
             Text(
                 text = "Hola, $userName",
                 style = MaterialTheme.typography.headlineSmall,
@@ -112,7 +110,6 @@ fun DashboardScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // --- GRID DE ACCIONES RÁPIDAS ---
             Box(modifier = Modifier.height(240.dp)) {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
@@ -141,7 +138,7 @@ fun DashboardScreen(
                     item {
                         QuickActionCard(
                             title = "Escáner ID (150%)",
-                            icon = Icons.Rounded.DocumentScanner, // Icono más descriptivo
+                            icon = Icons.Rounded.DocumentScanner,
                             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                             onClick = { navController.navigate("document_scanner") }
                         )
@@ -150,9 +147,9 @@ fun DashboardScreen(
                     item {
                         QuickActionCard(
                             title = "Mi CV",
-                            icon = Icons.Rounded.ContactPage, // Icono de documento con perfil
-                            containerColor = MaterialTheme.colorScheme.primaryContainer, // Color destacado
-                            onClick = { navController.navigate("resume") } // Ruta directa al CV
+                            icon = Icons.Rounded.ContactPage,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            onClick = { navController.navigate("resume") }
                         )
                     }
                 }
@@ -160,7 +157,6 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- TARJETA DE ACTUALIZACIÓN ---
             UpdateCard(
                 githubOwner = "VictorVasquezZT2005",
                 githubRepo = "MindBox"
@@ -173,7 +169,7 @@ fun DashboardScreen(
 
 @Composable
 fun UpdateCard(githubOwner: String, githubRepo: String) {
-    val context = LocalContext.current // Corregido: LocalContext en lugar de LocalThemeContext
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val colorScheme = MaterialTheme.colorScheme
 

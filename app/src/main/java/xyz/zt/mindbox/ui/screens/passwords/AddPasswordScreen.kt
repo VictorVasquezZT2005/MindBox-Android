@@ -59,7 +59,6 @@ fun AddPasswordScreen(onBack: () -> Unit) {
                         showScanner = false
                     }
                 }
-                // Botón para cerrar escáner y volver a manual
                 Button(
                     onClick = { showScanner = false },
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp)
@@ -75,7 +74,6 @@ fun AddPasswordScreen(onBack: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Botón de Escáner QR Principal
                 FilledTonalButton(
                     onClick = {
                         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED

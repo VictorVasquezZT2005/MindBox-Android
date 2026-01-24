@@ -40,7 +40,6 @@ fun CertificatesScreen(navController: NavController) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedPlatformFilter by remember { mutableStateOf("Todas") }
 
-    // Formateador para comparar las fechas de entrega
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
 
     val dynamicPlatforms = remember(certificates) {
@@ -121,7 +120,6 @@ fun CertificatesScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // LÓGICA DE FILTRADO Y ORDENAMIENTO
             val filteredAndSorted = remember(certificates, searchQuery, selectedPlatformFilter) {
                 certificates
                     .filter { cert ->
@@ -130,7 +128,6 @@ fun CertificatesScreen(navController: NavController) {
                         matchesSearch && matchesPlatform
                     }
                     .sortedByDescending { cert ->
-                        // Intentamos parsear la fecha, si falla o está vacía usamos el inicio de los tiempos
                         try {
                             if (cert.issueDate.isNotBlank()) dateFormat.parse(cert.issueDate) else Date(0)
                         } catch (e: Exception) {

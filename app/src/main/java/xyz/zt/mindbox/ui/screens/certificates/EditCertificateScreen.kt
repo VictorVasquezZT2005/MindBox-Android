@@ -37,7 +37,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
     val storage = FirebaseStorage.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-    // Estados de los campos extraídos del modelo
     var title by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var issueDate by remember { mutableStateOf("") }
@@ -46,12 +45,10 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
     var score by remember { mutableStateOf("") }
     var currentPdfUrl by remember { mutableStateOf<String?>(null) }
 
-    // Estados de control de la UI
     var selectedPdfUri by remember { mutableStateOf<Uri?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
 
-    // Estado del Calendario (DatePicker)
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
 
@@ -59,7 +56,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
         selectedPdfUri = uri
     }
 
-    // Cargar datos del certificado al iniciar
     LaunchedEffect(certificateId) {
         db.collection("users").document(userId).collection("certificates").document(certificateId)
             .get().addOnSuccessListener { doc ->
@@ -80,7 +76,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
             }
     }
 
-    // Diálogo del Calendario
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -116,7 +111,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                             onClick = {
                                 isSaving = true
 
-                                // Función para actualizar Firestore
                                 fun finalUpdate(pdfUrl: String?) {
                                     val updatedCert = Certificate(
                                         id = certificateId,
@@ -139,7 +133,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                                         .addOnFailureListener { isSaving = false }
                                 }
 
-                                // Lógica de PDF: Subir nuevo o mantener actual
                                 if (selectedPdfUri != null) {
                                     val fileName = "${title.replace(" ", "_").lowercase()}_${certificateId.take(5)}_rev.pdf"
                                     val storageRef = storage.reference.child("users/$userId/certificates/$fileName")
@@ -176,7 +169,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
             ) {
                 if (isSaving) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
-                // Cabecera informativa (No editable)
                 Text("Plataforma: $platformType", style = MaterialTheme.typography.labelLarge, color = colorScheme.primary)
 
                 OutlinedTextField(
@@ -187,7 +179,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                     shape = RoundedCornerShape(12.dp)
                 )
 
-                // --- SELECTOR DE FECHA (UI) ---
                 OutlinedCard(
                     onClick = { showDatePicker = true },
                     modifier = Modifier.fillMaxWidth(),
@@ -207,7 +198,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                     }
                 }
 
-                // Documento PDF
                 Text("Documento de respaldo", style = MaterialTheme.typography.labelLarge)
                 OutlinedCard(
                     onClick = { pdfLauncher.launch("application/pdf") },

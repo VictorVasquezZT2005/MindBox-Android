@@ -23,7 +23,6 @@ import java.util.*
 fun EditReminderScreen(onBack: () -> Unit, viewModel: RemindersViewModel, reminderId: String) {
     val originalReminder = viewModel.reminders.find { it.id == reminderId }
 
-    // Estados inicializados con los datos del recordatorio original
     var title by remember { mutableStateOf(originalReminder?.title ?: "") }
     var notes by remember { mutableStateOf(originalReminder?.notes ?: "") }
     var url by remember { mutableStateOf(originalReminder?.url ?: "") }
@@ -103,7 +102,6 @@ fun EditReminderScreen(onBack: () -> Unit, viewModel: RemindersViewModel, remind
         }
     }
 
-    // --- PICKERS (Iguales a los anteriores con corrección UTC) ---
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState()
         DatePickerDialog(onDismissRequest = { showDatePicker = false }, confirmButton = {

@@ -29,23 +29,20 @@ fun StatsScreen(navController: NavController) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
     val colorScheme = MaterialTheme.colorScheme
 
-    // Estados para los conteos
     var noteCount by remember { mutableIntStateOf(0) }
     var certCount by remember { mutableIntStateOf(0) }
     var passCount by remember { mutableIntStateOf(0) }
-    var reminderCount by remember { mutableIntStateOf(0) } // <-- NUEVO ESTADO
+    var reminderCount by remember { mutableIntStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             val userRef = db.collection("users").document(userId)
 
-            // Consultas en paralelo para mayor velocidad
             userRef.collection("notes").get().addOnSuccessListener { noteCount = it.size() }
             userRef.collection("certificates").get().addOnSuccessListener { certCount = it.size() }
             userRef.collection("passwords").get().addOnSuccessListener { passCount = it.size() }
 
-            // NUEVA CONSULTA: Recordatorios
             userRef.collection("reminders").get()
                 .addOnSuccessListener { reminderCount = it.size() }
                 .addOnCompleteListener { isLoading = false }
@@ -90,7 +87,6 @@ fun StatsScreen(navController: NavController) {
 
                     Spacer(Modifier.height(20.dp))
 
-                    // --- TARJETAS DE ESTADÍSTICAS ---
                     StatRow("Notas Guardadas", noteCount.toString(), Icons.Rounded.Description, colorScheme.primary)
                     Spacer(Modifier.height(12.dp))
 
@@ -100,12 +96,10 @@ fun StatsScreen(navController: NavController) {
                     StatRow("Llaves de Acceso", passCount.toString(), Icons.Rounded.VpnKey, colorScheme.tertiary)
                     Spacer(Modifier.height(12.dp))
 
-                    // NUEVA FILA: Recordatorios
                     StatRow("Recordatorios", reminderCount.toString(), Icons.Rounded.NotificationsActive, Color(0xFFE91E63))
 
                     Spacer(Modifier.height(30.dp))
 
-                    // Mensaje Dinámico
                     val totalItems = noteCount + certCount + passCount + reminderCount
                     Card(
                         modifier = Modifier.fillMaxWidth(),

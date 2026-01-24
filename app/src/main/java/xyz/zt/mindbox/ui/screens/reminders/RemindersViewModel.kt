@@ -23,7 +23,6 @@ class RemindersViewModel : ViewModel() {
             .document(reminder.id).set(reminder)
     }
 
-    // NUEVA FUNCIÓN: ACTUALIZAR
     fun updateReminder(reminder: Reminder) {
         val userId = auth.currentUser?.uid ?: return
         db.collection("users").document(userId).collection("reminders")

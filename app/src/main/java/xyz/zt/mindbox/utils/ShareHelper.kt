@@ -15,12 +15,10 @@ object ShareHelper {
     fun shareAsPdf(context: Context, note: Note) {
         val pdfDocument = PdfDocument()
 
-        // Tamaño A4 (595 x 842 puntos)
         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
         val page = pdfDocument.startPage(pageInfo)
         val canvas: Canvas = page.canvas
 
-        // Colores según el tipo de nota
         val categoryColor = when (note.type) {
             "Trabajo" -> 0xFF2196F3.toInt()
             "Idea"    -> 0xFF8BC34A.toInt()
@@ -45,17 +43,14 @@ object ShareHelper {
             strokeWidth = 1f
         }
 
-        // 1. Dibujar margen lateral (estilo cuaderno)
         canvas.drawRect(0f, 0f, 25f, 842f, Paint().apply { color = categoryColor })
 
-        // 2. Dibujar líneas horizontales
         var yPos = 120f
         while (yPos < 800f) {
             canvas.drawLine(40f, yPos, 560f, yPos, paintLine)
             yPos += 35f
         }
 
-        // 3. Escribir contenido
         canvas.drawText(note.type.uppercase(), 50f, 50f, paintBody.apply { textSize = 10f; isFakeBoldText = true })
 
         val lines = note.content.lines()
@@ -74,7 +69,6 @@ object ShareHelper {
 
         pdfDocument.finishPage(page)
 
-        // 4. Guardar archivo y compartir
         val file = File(context.cacheDir, "MindBox_${note.id}.pdf")
         try {
             pdfDocument.writeTo(FileOutputStream(file))

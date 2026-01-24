@@ -40,7 +40,6 @@ class NotesViewModel : ViewModel() {
 
     private fun listenToNotes(userId: String) {
         firestoreListener?.remove()
-        // CAMBIO: Ahora escucha en users/{userId}/notes
         firestoreListener = db.collection("users").document(userId).collection("notes")
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
@@ -54,7 +53,6 @@ class NotesViewModel : ViewModel() {
 
     fun addNote(content: String, type: String, onComplete: (Boolean) -> Unit) {
         val user = auth.currentUser ?: return onComplete(false)
-        // CAMBIO: Referencia a sub-colección privada
         val docRef = db.collection("users").document(user.uid).collection("notes").document()
         val newNote = Note(docRef.id, user.uid, content, type, System.currentTimeMillis())
         docRef.set(newNote).addOnCompleteListener { onComplete(it.isSuccessful) }
@@ -62,7 +60,6 @@ class NotesViewModel : ViewModel() {
 
     fun updateNote(noteId: String, content: String, type: String, onComplete: (Boolean) -> Unit) {
         val user = auth.currentUser ?: return onComplete(false)
-        // CAMBIO: Ruta de actualización privada
         db.collection("users").document(user.uid).collection("notes").document(noteId)
             .update("content", content, "type", type, "timestamp", System.currentTimeMillis())
             .addOnCompleteListener { onComplete(it.isSuccessful) }
@@ -70,7 +67,6 @@ class NotesViewModel : ViewModel() {
 
     fun deleteNote(noteId: String) {
         val user = auth.currentUser ?: return
-        // CAMBIO: Ruta de borrado privada
         db.collection("users").document(user.uid).collection("notes").document(noteId).delete()
     }
 

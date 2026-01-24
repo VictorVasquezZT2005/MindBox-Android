@@ -35,11 +35,9 @@ fun ResumeScreen(navController: NavController) {
     val context = LocalContext.current
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-    // Estado para los certificados cargados desde Firebase
     var certificates by remember { mutableStateOf<List<Certificate>>(emptyList()) }
     var isLoadingCertificates by remember { mutableStateOf(true) }
 
-    // Cargar certificados desde Firebase
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             FirebaseFirestore.getInstance()
@@ -56,11 +54,9 @@ fun ResumeScreen(navController: NavController) {
                             issueDate = doc.getString("issueDate") ?: ""
                         )
                     }.sortedByDescending { cert ->
-                        // Convierte la fecha DD/MM/YYYY a un formato comparable
                         try {
                             val parts = cert.issueDate.split("/")
                             if (parts.size == 3) {
-                                // Formato: YYYYMMDD para ordenar correctamente
                                 "${parts[2]}${parts[1].padStart(2, '0')}${parts[0].padStart(2, '0')}"
                             } else {
                                 cert.issueDate
@@ -79,12 +75,10 @@ fun ResumeScreen(navController: NavController) {
         }
     }
 
-    // Estado del currículum
     var resumeData by remember { mutableStateOf(ResumeData()) }
 
     val scrollState = rememberScrollState()
 
-    // Estado para calendario
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
 
@@ -130,7 +124,6 @@ fun ResumeScreen(navController: NavController) {
                         Toast.makeText(context, "Sube tu foto para continuar", Toast.LENGTH_SHORT).show()
                     } else {
                         try {
-                            // Genera el PDF incluyendo los certificados de Firebase
                             ResumeHelper.generateResumePdf(context, resumeData, certificates)
                             Toast.makeText(context, "PDF guardado en Descargas", Toast.LENGTH_LONG).show()
                         } catch (e: Exception) {
@@ -153,7 +146,6 @@ fun ResumeScreen(navController: NavController) {
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // --- FOTO OBLIGATORIA ---
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                 shape = RoundedCornerShape(24.dp),
@@ -180,11 +172,12 @@ fun ResumeScreen(navController: NavController) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Fotografía Formal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text("Formato tamaño título. Indispensable para el PDF.", style = MaterialTheme.typography.bodySmall)
+                        Spacer(Modifier.height(4.dp))
+                        Text("Aspecto 5:7 • Resolución mín. 500x700px", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
 
-            // --- DATOS PERSONALES ---
             CVHeaderM3("Datos Personales", Icons.Rounded.Badge)
             M3TextField(resumeData.personalInfo.name, "Nombre completo", Icons.Rounded.Person) {
                 resumeData = resumeData.copy(personalInfo = resumeData.personalInfo.copy(name = it))
@@ -264,7 +257,6 @@ fun ResumeScreen(navController: NavController) {
                 resumeData = resumeData.copy(personalInfo = resumeData.personalInfo.copy(address = it))
             }
 
-            // --- FORMACIÓN ACADÉMICA ---
             CVHeaderM3("Formación Académica", Icons.Rounded.School)
 
             EducationFieldM3(
@@ -283,7 +275,6 @@ fun ResumeScreen(navController: NavController) {
                 onValueChange = { resumeData = resumeData.copy(education = resumeData.education.copy(secondary = it)) }
             )
 
-            // --- CURSOS Y CERTIFICACIONES (Desde Firebase) ---
             if (isLoadingCertificates) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
             } else if (certificates.isNotEmpty()) {
@@ -308,7 +299,6 @@ fun ResumeScreen(navController: NavController) {
                 }
             }
 
-            // --- EXPERIENCIA LABORAL ---
             CVHeaderM3("Experiencia Laboral", Icons.Rounded.WorkOutline)
             resumeData.experiences.forEachIndexed { index, exp ->
                 ExperienceCardM3(exp, onUpdate = { updated ->
@@ -331,7 +321,6 @@ fun ResumeScreen(navController: NavController) {
                 Text("Añadir experiencia laboral")
             }
 
-            // --- IDIOMAS ---
             CVHeaderM3("Idiomas", Icons.Rounded.Language)
             resumeData.languages.forEachIndexed { index, lang ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -376,7 +365,6 @@ fun ResumeScreen(navController: NavController) {
                 Text("Añadir idioma")
             }
 
-            // --- HABILIDADES Y ADICIONAL ---
             CVHeaderM3("Habilidades e Información", Icons.Rounded.AutoAwesome)
             M3TextField(resumeData.skills, "Principales habilidades", Icons.Rounded.Star) {
                 resumeData = resumeData.copy(skills = it)
@@ -385,7 +373,6 @@ fun ResumeScreen(navController: NavController) {
                 resumeData = resumeData.copy(additionalInfo = it)
             }
 
-            // --- REFERENCIAS ---
             CVHeaderM3("Referencia Personales", Icons.Rounded.ContactPhone)
             resumeData.references.forEachIndexed { index, ref ->
                 ReferenceCardM3(ref, onUpdate = { updated ->
@@ -412,8 +399,6 @@ fun ResumeScreen(navController: NavController) {
         }
     }
 }
-
-// --- COMPONENTES AUXILIARES ---
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

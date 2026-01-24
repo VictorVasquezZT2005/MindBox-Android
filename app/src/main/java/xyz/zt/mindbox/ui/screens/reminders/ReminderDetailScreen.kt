@@ -39,7 +39,6 @@ fun ReminderDetailScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Atrás")
                     }
                 },
-                // BOTÓN DE EDICIÓN AÑADIDO
                 actions = {
                     IconButton(onClick = { navController.navigate("edit_reminder/$reminderId") }) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar")

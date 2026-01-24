@@ -29,13 +29,11 @@ import java.util.*
 fun AddReminderScreen(onBack: () -> Unit, viewModel: RemindersViewModel) {
     val context = LocalContext.current
 
-    // Estados básicos
     var title by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
     var isUrgent by remember { mutableStateOf(false) }
 
-    // Estados de fecha/hora
     var hasDate by remember { mutableStateOf(false) }
     var hasTime by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf("Seleccionar fecha") }
@@ -43,18 +41,15 @@ fun AddReminderScreen(onBack: () -> Unit, viewModel: RemindersViewModel) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    // Listas
     val availableLists = remember { mutableStateListOf("Imbox", "Personal", "Trabajo") }
     var selectedList by remember { mutableStateOf("Imbox") }
     var showListMenu by remember { mutableStateOf(false) }
     var showNewListDialog by remember { mutableStateOf(false) }
     var newListName by remember { mutableStateOf("") }
 
-    // Estado de detalles
     var showDetailsField by remember { mutableStateOf(false) }
     var detailText by remember { mutableStateOf("") }
 
-    // Permisos
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { }
@@ -89,7 +84,6 @@ fun AddReminderScreen(onBack: () -> Unit, viewModel: RemindersViewModel) {
             OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notas rápidas") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
             OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("URL") }, placeholder = { Text("https://...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
 
-            // Fila de Fecha y Hora
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = hasDate, onCheckedChange = { hasDate = it; if(it) showDatePicker = true })
                 Text("Fecha")
@@ -102,7 +96,6 @@ fun AddReminderScreen(onBack: () -> Unit, viewModel: RemindersViewModel) {
                 if (hasTime) TextButton(onClick = { showTimePicker = true }) { Text(selectedTime) }
             }
 
-            // Categorización
             Text("Categorización", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -183,8 +176,6 @@ fun AddReminderScreen(onBack: () -> Unit, viewModel: RemindersViewModel) {
         }
     }
 
-    // --- DIÁLOGOS CORREGIDOS ---
-
     if (showNewListDialog) {
         AlertDialog(onDismissRequest = { showNewListDialog = false }, title = { Text("Nueva Lista") }, text = { OutlinedTextField(value = newListName, onValueChange = { newListName = it }, label = { Text("Nombre") }) }, confirmButton = { TextButton(onClick = { if(newListName.isNotBlank()) { availableLists.add(newListName); selectedList = newListName; showNewListDialog = false } }) { Text("Crear") } })
     }
@@ -196,7 +187,6 @@ fun AddReminderScreen(onBack: () -> Unit, viewModel: RemindersViewModel) {
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        // USAR UTC para evitar que reste un día por la zona horaria
                         val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
                             timeInMillis = millis
                         }

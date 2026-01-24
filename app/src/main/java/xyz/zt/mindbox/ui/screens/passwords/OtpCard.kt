@@ -22,7 +22,6 @@ fun OtpCard(
     ticks: Int,
     onDeleteRequest: () -> Unit
 ) {
-    // Generación del código OTP sincronizado con los ticks del sistema
     val code = remember(ticks) {
         if (password.secretKey.isNotBlank()) {
             try {
@@ -31,15 +30,13 @@ fun OtpCard(
         } else "000000"
     }
 
-    // Estado para el progreso fluido (0.0 a 1.0)
     var progressFactor by remember { mutableFloatStateOf(1f) }
 
-    // Hilo de actualización constante para la barra de progreso
     LaunchedEffect(Unit) {
         while (true) {
             val ms = System.currentTimeMillis() % 30000
             progressFactor = 1f - (ms / 30000f)
-            delay(50) // 20 actualizaciones por segundo para fluidez total
+            delay(50)
         }
     }
 
@@ -56,7 +53,6 @@ fun OtpCard(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Información del servicio (Izquierda)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = password.serviceName,
@@ -72,7 +68,6 @@ fun OtpCard(
                 }
             }
 
-            // Lógica y botones (Derecha)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val formatted = if (code.length == 6) "${code.substring(0, 3)} ${code.substring(3)}" else code
@@ -86,7 +81,6 @@ fun OtpCard(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // INDICADOR CIRCULAR CORREGIDO
                     CircularProgressIndicator(
                         progress = { progressFactor },
                         modifier = Modifier.size(14.dp),
@@ -98,7 +92,6 @@ fun OtpCard(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Botón de eliminar
                 IconButton(onClick = onDeleteRequest) {
                     Icon(
                         imageVector = Icons.Default.Delete,

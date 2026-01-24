@@ -58,7 +58,6 @@ fun DocumentScannerScreen(navController: NavController) {
         autoZoomEnabled = true
         fixAspectRatio = false
 
-        // Interfaz en modo oscuro
         backgroundColor = android.graphics.Color.BLACK
         activityBackgroundColor = android.graphics.Color.BLACK
         toolbarColor = android.graphics.Color.BLACK
@@ -67,7 +66,7 @@ fun DocumentScannerScreen(navController: NavController) {
         activityMenuIconColor = android.graphics.Color.WHITE
 
         activityTitle = "Ajustar Documento"
-        cropperLabelText = "" // Eliminado el texto de instrucción del recorte
+        cropperLabelText = ""
         showCropOverlay = true
         showProgressBar = true
     }

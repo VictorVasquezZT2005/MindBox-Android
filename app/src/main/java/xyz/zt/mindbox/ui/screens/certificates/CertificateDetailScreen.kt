@@ -82,7 +82,6 @@ fun CertificateDetailScreen(navController: NavController, certId: String) {
                 ) {
                     Spacer(Modifier.height(20.dp))
 
-                    // Halo de la Insignia
                     Box(
                         modifier = Modifier
                             .size(130.dp)
@@ -123,7 +122,6 @@ fun CertificateDetailScreen(navController: NavController, certId: String) {
 
                     Spacer(Modifier.height(40.dp))
 
-                    // TARJETA DE DATOS TÉCNICOS
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -133,7 +131,6 @@ fun CertificateDetailScreen(navController: NavController, certId: String) {
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
 
-                            // ID del Logro (Dinámico)
                             InfoSection(
                                 label = "ID DEL LOGRO / FOLIO",
                                 value = if (!cert.folio.isNullOrBlank()) cert.folio
@@ -141,7 +138,6 @@ fun CertificateDetailScreen(navController: NavController, certId: String) {
                                 else "No registrado"
                             )
 
-                            // --- FECHA DE ENTREGA ---
                             if (!cert.issueDate.isNullOrBlank()) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 12.dp),
@@ -153,7 +149,6 @@ fun CertificateDetailScreen(navController: NavController, certId: String) {
                                 )
                             }
 
-                            // Calificación (Opcional)
                             if (!cert.score.isNullOrBlank()) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 12.dp),
@@ -167,7 +162,6 @@ fun CertificateDetailScreen(navController: NavController, certId: String) {
                         }
                     }
 
-                    // --- SECCIÓN DE PDF ---
                     if (!cert.pdfUrl.isNullOrBlank()) {
                         Spacer(Modifier.height(16.dp))
                         OutlinedCard(
@@ -194,7 +188,6 @@ fun CertificateDetailScreen(navController: NavController, certId: String) {
                         }
                     }
 
-                    // SECCIÓN DE NOTAS
                     if (!cert.notes.isNullOrBlank()) {
                         Spacer(Modifier.height(16.dp))
                         Card(
@@ -232,7 +225,6 @@ fun CertificateDetailScreen(navController: NavController, certId: String) {
     }
 }
 
-// Componente reutilizable para los items de la tarjeta
 @Composable
 fun InfoSection(label: String, value: String) {
     Column(modifier = Modifier.fillMaxWidth()) {

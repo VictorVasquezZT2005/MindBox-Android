@@ -32,7 +32,6 @@ fun PasswordsScreen(navController: NavController, openAddDirectly: Boolean = fal
     var searchQuery by remember { mutableStateOf("") }
     var passwordToDelete by remember { mutableStateOf<Password?>(null) }
 
-    // EFECTO: Si venimos del Dashboard pidiendo agregar, navegamos de inmediato
     LaunchedEffect(openAddDirectly) {
         if (openAddDirectly) {
             navController.navigate("add_password")
@@ -60,7 +59,6 @@ fun PasswordsScreen(navController: NavController, openAddDirectly: Boolean = fal
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                // CORRECCIÓN: Navegar a la pantalla completa en lugar de abrir el diálogo
                 navController.navigate("add_password")
             }) {
                 Icon(Icons.Default.Add, null)
@@ -100,7 +98,6 @@ fun PasswordsScreen(navController: NavController, openAddDirectly: Boolean = fal
         }
     }
 
-    // El Diálogo de borrado sí puede ser flotante (es estándar en Android)
     if (passwordToDelete != null) {
         AlertDialog(
             onDismissRequest = { passwordToDelete = null },

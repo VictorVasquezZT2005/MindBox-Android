@@ -8,7 +8,6 @@ import java.util.*
 
 object CalendarHelper {
 
-    // Función para obtener el ID del calendario principal del usuario
     private fun getPrimaryCalendarId(context: Context): Long {
         val projection = arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.IS_PRIMARY)
         val cursor = context.contentResolver.query(
@@ -30,7 +29,7 @@ object CalendarHelper {
             }
             cursor.close()
         }
-        return 1 // Si no encuentra el primario, intenta con el 1
+        return 1
     }
 
     fun addEventToCalendar(
@@ -73,7 +72,6 @@ object CalendarHelper {
                 Log.d("CalendarHelper", "Evento creado con éxito: $uri")
                 val eventId = uri.lastPathSegment?.toLong() ?: return
 
-                // Programar Recordatorio (Notificación)
                 val reminderValues = ContentValues().apply {
                     put(CalendarContract.Reminders.MINUTES, 10)
                     put(CalendarContract.Reminders.EVENT_ID, eventId)
