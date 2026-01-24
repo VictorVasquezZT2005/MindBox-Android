@@ -14,7 +14,12 @@ import xyz.zt.mindbox.ui.login.ForgotPasswordScreen
 import xyz.zt.mindbox.ui.login.LoginScreen
 import xyz.zt.mindbox.ui.login.RegisterScreen
 import xyz.zt.mindbox.ui.screens.passwords.PasswordsScreen
+import xyz.zt.mindbox.ui.screens.passwords.AddPasswordScreen
 import xyz.zt.mindbox.ui.screens.profile.ProfileScreen
+import xyz.zt.mindbox.ui.screens.certificates.*
+import xyz.zt.mindbox.ui.screens.stats.StatsScreen
+import xyz.zt.mindbox.ui.screens.documents.DocumentScannerScreen
+import xyz.zt.mindbox.ui.screens.profile.ResumeScreen
 
 @Composable
 fun MindBoxNavGraph(
@@ -33,77 +38,60 @@ fun MindBoxNavGraph(
     ) {
         // --- AUTENTICACIÓN ---
         composable("login") {
-            LoginScreen(
-                onLoginSuccess = onLoginSuccess,
-                onNavigateToRegister = { navController.navigate("register") },
-                onNavigateToForgotPassword = { navController.navigate("forgot_password") }
-            )
+            LoginScreen(onLoginSuccess = onLoginSuccess, onNavigateToRegister = { navController.navigate("register") }, onNavigateToForgotPassword = { navController.navigate("forgot_password") })
         }
-
-        composable("register") {
-            RegisterScreen(
-                onRegisterSuccess = onLoginSuccess,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable("forgot_password") {
-            ForgotPasswordScreen(onBack = { navController.popBackStack() })
-        }
+        composable("register") { RegisterScreen(onRegisterSuccess = onLoginSuccess, onBack = { navController.popBackStack() }) }
+        composable("forgot_password") { ForgotPasswordScreen(onBack = { navController.popBackStack() }) }
 
         // --- PANTALLAS PRINCIPALES ---
-        composable(BottomNavItem.Dashboard.route) {
-            DashboardScreen(navController, notesViewModel, onLogout)
-        }
+        composable(BottomNavItem.Dashboard.route) { DashboardScreen(navController, notesViewModel, onLogout) }
+        composable(BottomNavItem.Notes.route) { NotesScreen(navController, notesViewModel) }
+        composable(BottomNavItem.Reminders.route) { RemindersScreen(navController, remindersViewModel) }
+        composable(BottomNavItem.Passwords.route) { PasswordsScreen(navController = navController) }
+        composable(BottomNavItem.Profile.route) { ProfileScreen(onLogout = onLogout) }
 
-        composable(BottomNavItem.Notes.route) {
-            NotesScreen(navController, notesViewModel)
-        }
+        // --- NUEVA RUTA: ESTADÍSTICAS (MI RED) ---
+        composable("stats") { StatsScreen(navController) }
 
-        composable(BottomNavItem.Reminders.route) {
-            RemindersScreen(navController, remindersViewModel)
-        }
+        // --- FLUJO DE CERTIFICADOS ---
+        composable("certificates") { CertificatesScreen(navController) }
+        composable("add_certificate") { AddCertificateScreen(navController) }
 
-        composable(BottomNavItem.Passwords.route) {
-            PasswordsScreen()
-        }
+        composable("document_scanner") { DocumentScannerScreen(navController) }
 
-        composable(BottomNavItem.Profile.route) {
-            ProfileScreen(onLogout = onLogout)
-        }
+        composable("resume") { ResumeScreen(navController = navController) }
 
-        // --- FLUJO DE NOTAS ---
-        composable("new_note") {
-            NewNoteScreen(navController, notesViewModel)
+        composable(
+            route = "certificate_detail/{certId}",
+            arguments = listOf(navArgument("certId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("certId") ?: ""
+            CertificateDetailScreen(navController, id)
         }
 
         composable(
-            route = "note_detail/{noteId}",
-            arguments = listOf(navArgument("noteId") { type = NavType.StringType })
+            route = "edit_certificate/{certId}",
+            arguments = listOf(navArgument("certId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val noteId = backStackEntry.arguments?.getString("noteId") ?: ""
-            NoteDetailScreen(navController, notesViewModel, noteId)
+            val id = backStackEntry.arguments?.getString("certId") ?: ""
+            EditCertificateScreen(navController, id)
+        }
+
+        // --- FLUJO DE CONTRASEÑAS (2FA) ---
+        composable("add_password") { AddPasswordScreen(onBack = { navController.popBackStack() }) }
+
+        // --- FLUJO DE NOTAS ---
+        composable("new_note") { NewNoteScreen(navController, notesViewModel) }
+        composable("note_detail/{noteId}", arguments = listOf(navArgument("noteId") { type = NavType.StringType })) {
+            val id = it.arguments?.getString("noteId") ?: ""
+            NoteDetailScreen(navController, notesViewModel, id)
         }
 
         // --- FLUJO DE RECORDATORIOS ---
-        composable("add_reminder") {
-            AddReminderScreen(onBack = { navController.popBackStack() }, viewModel = remindersViewModel)
-        }
-
-        composable(
-            route = "reminder_detail/{reminderId}",
-            arguments = listOf(navArgument("reminderId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val reminderId = backStackEntry.arguments?.getString("reminderId") ?: ""
-            ReminderDetailScreen(navController, remindersViewModel, reminderId)
-        }
-
-        composable(
-            route = "edit_reminder/{reminderId}",
-            arguments = listOf(navArgument("reminderId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val reminderId = backStackEntry.arguments?.getString("reminderId") ?: ""
-            EditReminderScreen(onBack = { navController.popBackStack() }, viewModel = remindersViewModel, reminderId = reminderId)
+        composable("add_reminder") { AddReminderScreen(onBack = { navController.popBackStack() }, viewModel = remindersViewModel) }
+        composable("reminder_detail/{reminderId}", arguments = listOf(navArgument("reminderId") { type = NavType.StringType })) {
+            val id = it.arguments?.getString("reminderId") ?: ""
+            ReminderDetailScreen(navController, remindersViewModel, id)
         }
     }
 }

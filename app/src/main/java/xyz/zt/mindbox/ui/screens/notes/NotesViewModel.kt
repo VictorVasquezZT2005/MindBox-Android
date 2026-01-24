@@ -15,9 +15,8 @@ class NotesViewModel : ViewModel() {
     private val _notes = mutableStateListOf<Note>()
 
     var searchQuery by mutableStateOf("")
-    var selectedTypeFilter by mutableStateOf("Todas") // Estado para el filtro superior
+    var selectedTypeFilter by mutableStateOf("Todas")
 
-    // Lista filtrada que combina Búsqueda y Categoría
     val notes: List<Note> get() {
         val searchFiltered = if (searchQuery.isEmpty()) _notes
         else _notes.filter { it.content.contains(searchQuery, ignoreCase = true) }
@@ -41,8 +40,8 @@ class NotesViewModel : ViewModel() {
 
     private fun listenToNotes(userId: String) {
         firestoreListener?.remove()
-        firestoreListener = db.collection("notes")
-            .whereEqualTo("userId", userId)
+        // CAMBIO: Ahora escucha en users/{userId}/notes
+        firestoreListener = db.collection("users").document(userId).collection("notes")
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
                 snapshot?.let {
@@ -55,19 +54,24 @@ class NotesViewModel : ViewModel() {
 
     fun addNote(content: String, type: String, onComplete: (Boolean) -> Unit) {
         val user = auth.currentUser ?: return onComplete(false)
-        val docRef = db.collection("notes").document()
+        // CAMBIO: Referencia a sub-colección privada
+        val docRef = db.collection("users").document(user.uid).collection("notes").document()
         val newNote = Note(docRef.id, user.uid, content, type, System.currentTimeMillis())
         docRef.set(newNote).addOnCompleteListener { onComplete(it.isSuccessful) }
     }
 
     fun updateNote(noteId: String, content: String, type: String, onComplete: (Boolean) -> Unit) {
-        db.collection("notes").document(noteId)
+        val user = auth.currentUser ?: return onComplete(false)
+        // CAMBIO: Ruta de actualización privada
+        db.collection("users").document(user.uid).collection("notes").document(noteId)
             .update("content", content, "type", type, "timestamp", System.currentTimeMillis())
             .addOnCompleteListener { onComplete(it.isSuccessful) }
     }
 
     fun deleteNote(noteId: String) {
-        db.collection("notes").document(noteId).delete()
+        val user = auth.currentUser ?: return
+        // CAMBIO: Ruta de borrado privada
+        db.collection("users").document(user.uid).collection("notes").document(noteId).delete()
     }
 
     override fun onCleared() {

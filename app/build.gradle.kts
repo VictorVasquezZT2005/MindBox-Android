@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
+    implementation(libs.firebase.storage)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -84,4 +85,6 @@ dependencies {
     implementation("androidx.camera:camera-view:1.4.0")
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
     implementation("commons-codec:commons-codec:1.15")
+    implementation("com.github.CanHub:Android-Image-Cropper:4.5.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }
