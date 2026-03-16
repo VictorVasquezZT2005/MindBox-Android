@@ -1,47 +1,55 @@
 package xyz.zt.mindbox.ui.theme
 
 import android.app.Activity
-import android.graphics.Color
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color // Este es el Color de Compose
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+private val DarkColorScheme = darkColorScheme(
+    primary = BrandOrange,
+    secondary = BrandRust,
+    tertiary = BrandDeepBlue,
+    background = DeepBlack,
+    surface = Color(0xFF162024),
+    onPrimary = DeepBlack,
+    onBackground = Color.White, // Ahora sí encontrará White
+    onSurface = Color.White
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = BrandDeepBlue,
+    secondary = BrandOrange,
+    tertiary = BrandRust,
+    background = SoftWhite,
+    surface = SoftWhite,
+    onPrimary = Color.White,
+    onBackground = BrandDeepBlue,
+    onSurface = BrandDeepBlue
+)
 
 @Composable
 fun MindBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
-        else -> lightColorScheme(primary = Purple40, secondary = PurpleGrey40, tertiary = Pink40)
-    }
-
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val view = LocalView.current
+
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-
-            // 1. Hacemos que la app se dibuje detrás de las barras del sistema
             WindowCompat.setDecorFitsSystemWindows(window, false)
 
-            // 2. Baras totalmente transparentes
-            window.statusBarColor = Color.TRANSPARENT
-            window.navigationBarColor = Color.TRANSPARENT
+            // USAMOS LA REFERENCIA EXPLÍCITA PARA EL SISTEMA:
+            // android.graphics.Color.TRANSPARENT (es un Int, no un objeto Color de Compose)
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            window.navigationBarColor = android.graphics.Color.TRANSPARENT
 
             val insetsController = WindowCompat.getInsetsController(window, view)
-
-            // 3. Ajuste de iconos según el tema (oscuros en fondo claro, claros en fondo oscuro)
             insetsController.isAppearanceLightStatusBars = !darkTheme
             insetsController.isAppearanceLightNavigationBars = !darkTheme
         }

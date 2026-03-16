@@ -1,30 +1,36 @@
 package xyz.zt.mindbox.ui.dashboard.screens.reminders
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import xyz.zt.mindbox.data.model.Reminder
+import xyz.zt.mindbox.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemindersScreen(navController: NavController, viewModel: RemindersViewModel) {
+    val colorScheme = MaterialTheme.colorScheme
     var searchQuery by remember { mutableStateOf("") }
     val reminders = viewModel.reminders
 
@@ -34,24 +40,33 @@ fun RemindersScreen(navController: NavController, viewModel: RemindersViewModel)
     }
 
     var selectedCategory by remember { mutableStateOf("Todas") }
-
-    LaunchedEffect(dynamicCategories) {
-        if (selectedCategory != "Todas" && selectedCategory !in dynamicCategories) {
-            selectedCategory = "Todas"
-        }
-    }
-
     var showDeleteDialog by remember { mutableStateOf(false) }
     var reminderToDelete by remember { mutableStateOf<Reminder?>(null) }
 
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate("add_reminder") },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(16.dp)
+            // FAB Estilo MindBox (como en Passwords/Login)
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .shadow(12.dp, CircleShape)
+                    .background(
+                        brush = Brush.linearGradient(listOf(BrandOrange, BrandRust)),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar Recordatorio")
+                FloatingActionButton(
+                    onClick = { navController.navigate("add_reminder") },
+                    containerColor = Color.Transparent,
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp),
+                    shape = CircleShape,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(Icons.Default.Add, "Agregar", modifier = Modifier.size(28.dp))
+                }
             }
         }
     ) { padding ->
@@ -59,50 +74,74 @@ fun RemindersScreen(navController: NavController, viewModel: RemindersViewModel)
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 24.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Recordatorios",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(32.dp))
 
+            // Títulos estilo MindBox
+            Text(
+                text = "Recordatorios",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colorScheme.primary,
+                    letterSpacing = 1.sp
+                )
+            )
+
+            Text(
+                text = "No dejes pasar lo importante.",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+            )
+
+            Spacer(Modifier.height(28.dp))
+
+            // Buscador estilo MindBox (Shape 18dp)
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = BrandOrange) },
                 placeholder = { Text("Buscar recordatorios...") },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                shape = RoundedCornerShape(28.dp),
-                singleLine = true
+                shape = RoundedCornerShape(18.dp),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = BrandOrange,
+                    unfocusedBorderColor = colorScheme.outline.copy(alpha = 0.2f),
+                    focusedContainerColor = colorScheme.surface,
+                    unfocusedContainerColor = colorScheme.surface
+                )
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(Modifier.height(20.dp))
 
+            // Chips de categorías
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 dynamicCategories.forEach { category ->
+                    val isSelected = selectedCategory == category
                     FilterChip(
-                        selected = selectedCategory == category,
+                        selected = isSelected,
                         onClick = { selectedCategory = category },
-                        label = { Text(category) },
+                        label = { Text(category, fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Normal) },
                         shape = RoundedCornerShape(20.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                            selectedContainerColor = BrandOrange,
+                            selectedLabelColor = Color.White,
+                            containerColor = colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        ),
+                        border = null
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
 
             val filteredList = reminders.filter { reminder ->
                 val matchesSearch = reminder.title.contains(searchQuery, ignoreCase = true)
@@ -113,72 +152,24 @@ fun RemindersScreen(navController: NavController, viewModel: RemindersViewModel)
             if (filteredList.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Notifications, null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
-                        Text(
-                            if (searchQuery.isEmpty()) "No hay nada en $selectedCategory" else "Sin resultados",
-                            color = Color.Gray,
-                            fontSize = 16.sp
-                        )
+                        Icon(Icons.Default.Notifications, null, modifier = Modifier.size(64.dp), tint = Color.Gray.copy(alpha = 0.3f))
+                        Text("Todo al día", color = Color.Gray)
                     }
                 }
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 80.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    contentPadding = PaddingValues(bottom = 100.dp)
                 ) {
                     items(filteredList, key = { it.id }) { reminder ->
-                        Card(
-                            onClick = { navController.navigate("reminder_detail/${reminder.id}") },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (reminder.isUrgent)
-                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = reminder.title,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-
-                                    IconButton(onClick = {
-                                        reminderToDelete = reminder
-                                        showDeleteDialog = true
-                                    }) {
-                                        Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
-                                    }
-                                }
-
-                                if (reminder.notes.isNotBlank()) {
-                                    Text(
-                                        text = reminder.notes,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.Gray,
-                                        maxLines = 1
-                                    )
-                                }
-
-                                if (reminder.date.isNotBlank()) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "⏰ ${reminder.date} ${reminder.time}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
+                        ReminderCard(
+                            reminder = reminder,
+                            onDelete = {
+                                reminderToDelete = reminder
+                                showDeleteDialog = true
+                            },
+                            onClick = { navController.navigate("reminder_detail/${reminder.id}") }
+                        )
                     }
                 }
             }
@@ -188,20 +179,99 @@ fun RemindersScreen(navController: NavController, viewModel: RemindersViewModel)
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("¿Eliminar recordatorio?") },
-            text = { Text("¿Estás seguro de que quieres borrar \"${reminderToDelete?.title}\"?") },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text("¿Eliminar?", fontWeight = FontWeight.Bold, color = colorScheme.onSurface) },
+            text = { Text("¿Estás seguro de borrar \"${reminderToDelete?.title}\"?") },
             confirmButton = {
-                TextButton(
+                Button(
+                    colors = ButtonDefaults.buttonColors(containerColor = colorScheme.error),
+                    shape = RoundedCornerShape(12.dp),
                     onClick = {
                         reminderToDelete?.let { viewModel.deleteReminder(it.id) }
                         showDeleteDialog = false
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Eliminar") }
+                    }
+                ) { Text("Eliminar", fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar", color = Color.Gray)
+                }
             }
         )
+    }
+}
+
+@Composable
+fun ReminderCard(reminder: Reminder, onDelete: () -> Unit, onClick: () -> Unit) {
+    val colorScheme = MaterialTheme.colorScheme
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(20.dp),
+                ambientColor = if (reminder.isUrgent) Color.Red.copy(alpha = 0.2f) else BrandOrange.copy(alpha = 0.1f)
+            )
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Indicador lateral de urgencia/estado
+            Box(
+                modifier = Modifier
+                    .size(width = 4.dp, height = 40.dp)
+                    .clip(CircleShape)
+                    .background(if (reminder.isUrgent) Color.Red else BrandOrange)
+            )
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = reminder.title,
+                    fontWeight = FontWeight.ExtraBold,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colorScheme.onSurface
+                )
+
+                if (reminder.notes.isNotBlank()) {
+                    Text(
+                        text = reminder.notes,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                if (reminder.date.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "📅 ${reminder.date} • ${reminder.time}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (reminder.isUrgent) Color.Red else BrandOrange,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier
+                    .background(colorScheme.errorContainer.copy(alpha = 0.1f), CircleShape)
+                    .size(36.dp)
+            ) {
+                Icon(Icons.Default.Delete, null, tint = colorScheme.error, modifier = Modifier.size(18.dp))
+            }
+        }
     }
 }

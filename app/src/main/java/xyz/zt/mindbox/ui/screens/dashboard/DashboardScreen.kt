@@ -8,6 +8,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,9 +25,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,8 +44,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import xyz.zt.mindbox.BuildConfig
+import xyz.zt.mindbox.R
 import xyz.zt.mindbox.ui.dashboard.screens.notes.NotesViewModel
 import xyz.zt.mindbox.ui.nav.BottomNavItem
+import xyz.zt.mindbox.ui.theme.*
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
@@ -55,73 +62,85 @@ fun DashboardScreen(
     val currentUser = remember { FirebaseAuth.getInstance().currentUser }
     val userName = currentUser?.displayName ?: currentUser?.email?.substringBefore("@") ?: "Usuario"
 
-    Scaffold { padding ->
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
+                .systemBarsPadding()
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // CABECERA ESTILO MINDBOX
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "MindBox",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(
-                    onClick = { navController.navigate(BottomNavItem.Profile.route) },
-                    modifier = Modifier.size(40.dp)
+                Column {
+                    Text(
+                        text = "MindBox",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 1.5.sp
+                        )
+                    )
+                    Text(
+                        text = "Hola, $userName",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    )
+                }
+
+                // AVATAR LIMPIO - SOLO EL PNG CON TRANSPARENCIA
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .shadow(8.dp, CircleShape) // Sombra ligera para dar profundidad al icono
+                        .clip(CircleShape)
+                        .clickable { navController.navigate(BottomNavItem.Profile.route) },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.AccountCircle,
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_profile),
                         contentDescription = "Perfil",
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Hola, $userName",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "Bienvenido de vuelta a tu cuaderno digital.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline
-            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
                 text = "Accesos rápidos",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onBackground
             )
 
-            Box(modifier = Modifier.height(240.dp)) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // GRID DE ACCIONES RÁPIDAS
+            Box(modifier = Modifier.height(260.dp)) {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     userScrollEnabled = false
                 ) {
                     item {
                         QuickActionCard(
                             title = "Mis Cursos",
                             icon = Icons.Rounded.School,
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            brush = Brush.linearGradient(listOf(BrandOrange, BrandRust)),
                             onClick = { navController.navigate("certificates") }
                         )
                     }
@@ -130,16 +149,16 @@ fun DashboardScreen(
                         QuickActionCard(
                             title = "Mi Red",
                             icon = Icons.Rounded.Hub,
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            brush = Brush.linearGradient(listOf(BrandDeepBlue, Color(0xFF4A90E2))),
                             onClick = { navController.navigate("stats") }
                         )
                     }
 
                     item {
                         QuickActionCard(
-                            title = "Escáner ID (150%)",
+                            title = "Escáner ID",
                             icon = Icons.Rounded.DocumentScanner,
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            brush = Brush.linearGradient(listOf(Color(0xFF6A1B9A), Color(0xFFAB47BC))),
                             onClick = { navController.navigate("document_scanner") }
                         )
                     }
@@ -148,7 +167,7 @@ fun DashboardScreen(
                         QuickActionCard(
                             title = "Mi CV",
                             icon = Icons.Rounded.ContactPage,
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            brush = Brush.linearGradient(listOf(Color(0xFF2E7D32), Color(0xFF66BB6A))),
                             onClick = { navController.navigate("resume") }
                         )
                     }
@@ -157,12 +176,57 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // TARJETA DE ACTUALIZACIÓN
             UpdateCard(
                 githubOwner = "VictorVasquezZT2005",
                 githubRepo = "MindBox"
             )
 
             Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+fun QuickActionCard(
+    title: String,
+    icon: ImageVector,
+    brush: Brush,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .shadow(12.dp, shape = RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(24.dp))
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(brush)
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontSize = 15.sp
+                )
+            }
         }
     }
 }
@@ -208,55 +272,71 @@ fun UpdateCard(githubOwner: String, githubRepo: String) {
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        )
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(28.dp)),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.AutoAwesome, null, tint = colorScheme.primary)
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Software", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Versión actual", style = MaterialTheme.typography.bodyMedium, color = colorScheme.onSurfaceVariant)
-                Text(currentVersion, fontWeight = FontWeight.SemiBold)
-            }
-
-            if (latestVersion != null && updateAvailable) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Nueva versión", style = MaterialTheme.typography.bodyMedium, color = colorScheme.onSurfaceVariant)
-                    Text("v$latestVersion", fontWeight = FontWeight.Bold, color = colorScheme.error)
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(BrandOrange.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Rounded.AutoAwesome, null, tint = BrandOrange, modifier = Modifier.size(20.dp))
                 }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Sistema de Software",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colorScheme.background, RoundedCornerShape(16.dp))
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Actual", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(currentVersion, fontWeight = FontWeight.Bold)
+                }
+                if (updateAvailable) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Nueva", style = MaterialTheme.typography.labelSmall, color = BrandRust)
+                        Text("v$latestVersion", fontWeight = FontWeight.Bold, color = BrandRust)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             when {
-                checking -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape))
+                checking -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape), color = BrandOrange)
                 isDownloading -> {
                     Column {
-                        LinearProgressIndicator(progress = { downloadProgress }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape))
+                        LinearProgressIndicator(progress = { downloadProgress }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = BrandOrange)
                         Text("${(downloadProgress * 100).toInt()}%", modifier = Modifier.align(Alignment.End), style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 downloadedFile != null -> {
                     Button(
                         onClick = { installApk(context, downloadedFile!!) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = colorScheme.tertiary)
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandDeepBlue)
                     ) {
                         Icon(Icons.Rounded.InstallMobile, null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Instalar v$latestVersion")
+                        Text("INSTALAR ACTUALIZACIÓN", fontWeight = FontWeight.Bold)
                     }
                 }
                 updateAvailable -> {
@@ -268,31 +348,28 @@ fun UpdateCard(githubOwner: String, githubRepo: String) {
                                 isDownloading = downloading
                             }
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandOrange)
                     ) {
                         Icon(Icons.Rounded.Download, null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Descargar actualización")
+                        Text("DESCARGAR AHORA", fontWeight = FontWeight.Bold)
                     }
                 }
                 else -> {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(colorScheme.primaryContainer.copy(alpha = 0.4f))
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Rounded.CheckCircle, null, tint = colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Rounded.CheckCircle, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "MindBox está actualizado",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Medium
+                            color = Color(0xFF2E7D32),
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
@@ -301,40 +378,7 @@ fun UpdateCard(githubOwner: String, githubRepo: String) {
     }
 }
 
-@Composable
-fun QuickActionCard(
-    title: String,
-    icon: ImageVector,
-    containerColor: Color,
-    onClick: () -> Unit = {}
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(110.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Icon(imageVector = icon, contentDescription = title, modifier = Modifier.size(28.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
-        }
-    }
-}
-
+// Lógica de descarga e instalación
 private fun startDownload(context: Context, urlStr: String?, scope: kotlinx.coroutines.CoroutineScope, onUpdate: (File?, Float, Boolean) -> Unit) {
     if (urlStr == null) return
     onUpdate(null, 0f, true)
