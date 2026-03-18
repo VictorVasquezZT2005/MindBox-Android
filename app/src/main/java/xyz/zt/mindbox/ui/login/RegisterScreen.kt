@@ -4,13 +4,12 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,7 +47,34 @@ fun RegisterScreen(
 
     val isFormValid = name.isNotBlank() && email.contains("@") && password.length >= 6
 
-    // Animación de flotado (Sincronizada con Login)
+    fun handleRegister() {
+        if (!isFormValid) return
+        loading = true
+        error = null
+        auth.createUserWithEmailAndPassword(email.trim(), password)
+            .addOnSuccessListener { result ->
+                val uid = result.user?.uid ?: ""
+                val userData = hashMapOf(
+                    "name" to name,
+                    "email" to email.trim(),
+                    "lastUpdate" to Date()
+                )
+                db.collection("users").document(uid).set(userData)
+                    .addOnSuccessListener {
+                        loading = false
+                        onRegisterSuccess()
+                    }
+                    .addOnFailureListener {
+                        loading = false
+                        error = "Usuario creado, pero error en base de datos."
+                    }
+            }
+            .addOnFailureListener {
+                loading = false
+                error = it.localizedMessage
+            }
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "logoFlotando")
     val floatingOffset by infiniteTransition.animateFloat(
         initialValue = -10f,
@@ -71,25 +97,35 @@ fun RegisterScreen(
                 .systemBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Fila superior para volver (Estilo integrado)
-            Row(
+            // CABECERA CON TÍTULO CENTRADO
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Start
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Atrás",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart) // Alineado a la izquierda
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            CircleShape
+                        )
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                 }
+
+                Text(
+                    text = "Registro",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
+                )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // ICONO 3D DE REGISTRO (Mismo estilo que el logo del Login)
+            // ICONO CUADRADO 3D
             Box(
                 modifier = Modifier
                     .size(110.dp)
@@ -113,10 +149,9 @@ fun RegisterScreen(
 
             Text(
                 text = "Crea tu Cuenta",
-                style = MaterialTheme.typography.headlineLarge.copy(
+                style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 2.sp
+                    color = MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -128,13 +163,14 @@ fun RegisterScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // CAMPOS DE TEXTO
+            // CAMPOS DE TEXTO CON ICONOS INTERNOS
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it; error = null },
-                label = { Text("Nombre completo") },
+                label = { Text("Nombre Completo") },
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = BrandOrange) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 singleLine = true,
@@ -149,7 +185,8 @@ fun RegisterScreen(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it; error = null },
-                label = { Text("Email") },
+                label = { Text("Correo Electrónico") },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = BrandOrange) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 singleLine = true,
@@ -164,7 +201,8 @@ fun RegisterScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it; error = null },
-                label = { Text("Contraseña (mín. 6 caracteres)") },
+                label = { Text("Contraseña (mín. 6)") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = BrandOrange) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -172,8 +210,7 @@ fun RegisterScreen(
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = null,
-                            tint = BrandDeepBlue.copy(alpha = 0.7f)
+                            contentDescription = null
                         )
                     }
                 },
@@ -184,75 +221,60 @@ fun RegisterScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            if (error != null) {
+                Text(
+                    text = error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 16.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
 
-            // BOTÓN DE REGISTRO CON GRADIENTE
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // BOTÓN PRINCIPAL
             Button(
-                onClick = {
-                    loading = true
-                    error = null
-                    auth.createUserWithEmailAndPassword(email.trim(), password)
-                        .addOnSuccessListener { result ->
-                            val uid = result.user?.uid ?: ""
-                            val userData = hashMapOf(
-                                "name" to name,
-                                "email" to email.trim(),
-                                "lastUpdate" to Date()
-                            )
-                            db.collection("users").document(uid).set(userData)
-                                .addOnSuccessListener {
-                                    loading = false
-                                    onRegisterSuccess()
-                                }
-                                .addOnFailureListener {
-                                    loading = false
-                                    error = "Usuario creado, pero error en base de datos."
-                                }
-                        }
-                        .addOnFailureListener {
-                            loading = false
-                            error = it.localizedMessage
-                        }
-                },
+                onClick = { handleRegister() },
+                enabled = isFormValid && !loading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp)
                     .shadow(12.dp, shape = RoundedCornerShape(18.dp)),
                 contentPadding = PaddingValues(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                enabled = !loading && isFormValid
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            brush = Brush.horizontalGradient(listOf(BrandOrange, BrandRust)),
+                            brush = if (isFormValid && !loading) Brush.horizontalGradient(listOf(BrandOrange, BrandRust))
+                            else Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.5f), Color.LightGray.copy(alpha = 0.5f))),
                             shape = RoundedCornerShape(18.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (loading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                    else Text("CREAR CUENTA", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                    if (loading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("CREAR CUENTA", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                    }
                 }
             }
 
-            if (error != null) {
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
                 Text(
-                    text = error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 16.dp),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodySmall
+                    "¿Ya eres parte de MindBox?",
+                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
                 )
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // FOOTER (Mismo estilo que en Login)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("¿Ya eres parte de MindBox?")
                 TextButton(onClick = onBack) {
-                    Text("Inicia sesión", color = BrandOrange, fontWeight = FontWeight.Bold)
+                    Text("Inicia sesión", color = BrandOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
 

@@ -1,7 +1,6 @@
 package xyz.zt.mindbox.ui.nav
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -10,7 +9,7 @@ sealed class BottomNavItem(
     val icon: ImageVector,
     val route: String
 ) {
-    object Dashboard : BottomNavItem("Inicio", Icons.Rounded.GridView, "dashboard")
+    object Dashboard : BottomNavItem("Inicio", Icons.Rounded.Home, "dashboard")
 
     object Notes : BottomNavItem("Notas", Icons.Rounded.Description, "notes")
 

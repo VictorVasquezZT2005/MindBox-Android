@@ -4,10 +4,11 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material3.*
@@ -34,7 +35,23 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
     var message by remember { mutableStateOf<String?>(null) }
     var isError by remember { mutableStateOf(false) }
 
-    // Animación de flotado (igual que en Login)
+    fun sendResetEmail() {
+        if (email.isBlank()) return
+        loading = true
+        message = null
+        auth.sendPasswordResetEmail(email.trim())
+            .addOnCompleteListener { task ->
+                loading = false
+                if (task.isSuccessful) {
+                    isError = false
+                    message = "Enlace enviado. Revisa tu bandeja de entrada."
+                } else {
+                    isError = true
+                    message = task.exception?.localizedMessage ?: "Error al enviar"
+                }
+            }
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "iconFlotando")
     val floatingOffset by infiniteTransition.animateFloat(
         initialValue = -10f,
@@ -57,25 +74,35 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
                 .systemBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Fila para el botón de retroceder
-            Row(
+            // CABECERA CON TÍTULO CENTRADO
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Start
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Atrás",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart) // Alineado a la izquierda
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            CircleShape
+                        )
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                 }
+
+                Text(
+                    text = "Recuperar",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
+                )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // LOGO/ICONO CON EFECTO 3D (Consistente con Login)
+            // ICONO CUADRADO 3D
             Box(
                 modifier = Modifier
                     .size(110.dp)
@@ -99,10 +126,9 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
 
             Text(
                 text = "Recuperar acceso",
-                style = MaterialTheme.typography.headlineLarge.copy(
+                style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 2.sp
+                    color = MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -112,16 +138,16 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center
                 ),
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                modifier = Modifier.padding(top = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // CAMPO DE TEXTO
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it; message = null },
-                label = { Text("Email") },
+                label = { Text("Correo Electrónico") },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = BrandOrange) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 singleLine = true,
@@ -131,68 +157,64 @@ fun ForgotPasswordScreen(onBack: () -> Unit) {
                 )
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            if (message != null) {
+                Text(
+                    text = message!!,
+                    color = if (isError) MaterialTheme.colorScheme.error else BrandOrange,
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 16.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
 
-            // BOTÓN PRINCIPAL CON GRADIENTE
+            Spacer(modifier = Modifier.height(48.dp))
+
             Button(
-                onClick = {
-                    loading = true
-                    message = null
-                    auth.sendPasswordResetEmail(email.trim())
-                        .addOnCompleteListener { task ->
-                            loading = false
-                            if (task.isSuccessful) {
-                                isError = false
-                                message = "Enlace enviado. Revisa tu bandeja de entrada."
-                            } else {
-                                isError = true
-                                message = task.exception?.localizedMessage ?: "Error al enviar"
-                            }
-                        }
-                },
+                onClick = { sendResetEmail() },
+                enabled = !loading && email.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp)
                     .shadow(12.dp, shape = RoundedCornerShape(18.dp)),
                 contentPadding = PaddingValues(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                enabled = !loading && email.isNotBlank()
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
             ) {
+                val isEnabled = !loading && email.isNotBlank()
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            brush = Brush.horizontalGradient(listOf(BrandOrange, BrandRust)),
+                            brush = if (isEnabled) Brush.horizontalGradient(listOf(BrandOrange, BrandRust))
+                            else Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.5f), Color.LightGray.copy(alpha = 0.5f))),
                             shape = RoundedCornerShape(18.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (loading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                    else Text("ENVIAR ENLACE", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                    if (loading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("ENVIAR ENLACE", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                    }
                 }
             }
 
-            if (message != null) {
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
                 Text(
-                    text = message!!,
-                    color = if (isError) MaterialTheme.colorScheme.error else BrandOrange,
-                    modifier = Modifier.padding(top = 24.dp),
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Medium
+                    "¿Recordaste tu contraseña?",
+                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
                 )
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // FOOTER para volver
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("¿Recordaste tu contraseña?")
                 TextButton(onClick = onBack) {
-                    Text("Inicia sesión", color = BrandOrange, fontWeight = FontWeight.Bold)
+                    Text("Inicia sesión", color = BrandOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

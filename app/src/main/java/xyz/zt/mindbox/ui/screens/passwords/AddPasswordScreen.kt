@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -13,7 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,8 +24,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -44,8 +48,8 @@ fun AddPasswordScreen(onBack: () -> Unit) {
     var service by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var secret by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
-    // Control de permisos para el visor integrado
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
@@ -56,7 +60,16 @@ fun AddPasswordScreen(onBack: () -> Unit) {
         ActivityResultContracts.RequestPermission()
     ) { hasCameraPermission = it }
 
-    // Pedir permiso al entrar si no se tiene
+    val infiniteTransition = rememberInfiniteTransition(label = "scannerFloating")
+    val floatingOffset by infiniteTransition.animateFloat(
+        initialValue = -6f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ), label = "offset"
+    )
+
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
@@ -75,37 +88,44 @@ fun AddPasswordScreen(onBack: () -> Unit) {
                 .systemBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Cabecera
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "Nuevo Acceso",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // --- CUADRO DE ESCÁNER INTEGRADO ---
+            // CABECERA (Centrada, sin el botón de la palomita)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp)
-                    .shadow(12.dp, RoundedCornerShape(24.dp), ambientColor = BrandOrange)
-                    .clip(RoundedCornerShape(24.dp))
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            CircleShape
+                        )
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                }
+
+                Text(
+                    text = "Nuevo Acceso",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ESCÁNER CON EFECTO FLOTANTE
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .graphicsLayer { translationY = floatingOffset }
+                    .shadow(15.dp, RoundedCornerShape(28.dp), ambientColor = BrandOrange)
+                    .clip(RoundedCornerShape(28.dp))
                     .background(Color.Black)
-                    .border(2.dp, Brush.linearGradient(listOf(BrandOrange, BrandRust)), RoundedCornerShape(24.dp)),
+                    .border(2.dp, Brush.linearGradient(listOf(BrandOrange, BrandRust)), RoundedCornerShape(28.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 if (hasCameraPermission) {
@@ -116,45 +136,42 @@ fun AddPasswordScreen(onBack: () -> Unit) {
                             secret = k
                         }
                     }
-
-                    // Guía visual minimalista sobre la cámara
                     Icon(
                         imageVector = Icons.Default.QrCodeScanner,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.2f),
-                        modifier = Modifier.size(100.dp)
+                        tint = Color.White.copy(alpha = 0.15f),
+                        modifier = Modifier.size(80.dp)
                     )
                 } else {
-                    Text(
-                        "Se requiere permiso de cámara para escanear",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(20.dp)
-                    )
+                    Text("Cámara requerida", color = Color.White, style = MaterialTheme.typography.bodySmall)
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Divisor Estilizado
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                HorizontalDivider(modifier = Modifier.weight(1f), thickness = 0.5.dp, color = Color.Gray.copy(alpha = 0.3f))
-                Text(
-                    " O INGRESA MANUAL ",
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
+            Text(
+                text = "Configuración de Cuenta",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary
                 )
-                HorizontalDivider(modifier = Modifier.weight(1f), thickness = 0.5.dp, color = Color.Gray.copy(alpha = 0.3f))
-            }
+            )
+
+            Text(
+                text = "Escanea el código QR o ingresa los datos",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- FORMULARIO MANUAL ---
             OutlinedTextField(
                 value = service,
                 onValueChange = { service = it },
                 label = { Text("Nombre del Servicio") },
+                placeholder = { Text("Ej: Google, GitHub...") },
+                leadingIcon = { Icon(Icons.Default.Apps, contentDescription = null, tint = BrandOrange) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -169,6 +186,7 @@ fun AddPasswordScreen(onBack: () -> Unit) {
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Correo o Usuario") },
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = BrandOrange) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -183,6 +201,7 @@ fun AddPasswordScreen(onBack: () -> Unit) {
                 value = secret,
                 onValueChange = { secret = it },
                 label = { Text("Clave Secreta (Key)") },
+                leadingIcon = { Icon(Icons.Rounded.Key, contentDescription = null, tint = BrandOrange) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -193,14 +212,15 @@ fun AddPasswordScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // --- BOTÓN GUARDAR CON GRADIENTE (Estilo Login) ---
+            // BOTÓN GUARDAR
             Button(
                 onClick = {
+                    isLoading = true
                     val p = Password(serviceName = service, accountEmail = email, secretKey = secret)
                     db.collection("users").document(userId).collection("passwords").document(p.id).set(p)
-                    onBack()
+                        .addOnSuccessListener { onBack() }
                 },
-                enabled = service.isNotBlank() && secret.isNotBlank(),
+                enabled = service.isNotBlank() && secret.isNotBlank() && !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp)
@@ -208,22 +228,26 @@ fun AddPasswordScreen(onBack: () -> Unit) {
                 contentPadding = PaddingValues(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
             ) {
-                val isEnabled = service.isNotBlank() && secret.isNotBlank()
+                val isEnabled = service.isNotBlank() && secret.isNotBlank() && !isLoading
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             brush = if (isEnabled) Brush.horizontalGradient(listOf(BrandOrange, BrandRust))
-                            else Brush.horizontalGradient(listOf(Color.Gray, Color.LightGray)),
+                            else Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.5f), Color.LightGray.copy(alpha = 0.5f))),
                             shape = RoundedCornerShape(18.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("GUARDAR CUENTA", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp)
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("GUARDAR CUENTA", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp)
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
