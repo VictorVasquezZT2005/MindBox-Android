@@ -20,15 +20,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -49,9 +51,73 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-// ✅ Color vibrante para "Mi Red" — reemplaza BrandDeepBlue que era muy oscuro
 private val NetworkBlue = Color(0xFF29B6F6)
 
+// ─────────────────────────────────────────────────────────────
+//  Liquid Glass Modifier
+// ─────────────────────────────────────────────────────────────
+fun Modifier.liquidGlassBackground(
+    color: Color,
+    surfaceColor: Color,
+    shape: Shape,
+    glassAlpha: Float = 0.13f,
+    borderAlpha: Float = 0.35f,
+    elevation: Dp = 8.dp,
+): Modifier = this
+    .shadow(
+        elevation = elevation,
+        shape = shape,
+        spotColor = color.copy(alpha = 0.18f),
+        ambientColor = color.copy(alpha = 0.08f)
+    )
+    .background(surfaceColor, shape)
+    .background(
+        brush = Brush.verticalGradient(
+            colors = listOf(
+                color.copy(alpha = glassAlpha + 0.04f),
+                color.copy(alpha = glassAlpha * 0.3f)
+            )
+        ),
+        shape = shape
+    )
+    .border(
+        width = 0.8.dp,
+        brush = Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = borderAlpha),
+                color.copy(alpha = 0.15f),
+                Color.Transparent
+            ),
+            start = Offset(0f, 0f),
+            end = Offset(400f, 400f)
+        ),
+        shape = shape
+    )
+
+fun Modifier.colorGlow(
+    color: Color,
+    radius: Float = 80f,
+    alpha: Float = 0.25f,
+): Modifier = this.drawBehind {
+    drawIntoCanvas { canvas ->
+        val glowPaint = Paint().apply {
+            asFrameworkPaint().apply {
+                isAntiAlias = true
+                this.color = android.graphics.Color.TRANSPARENT
+                setShadowLayer(radius, 0f, 4f, color.copy(alpha = alpha).toArgb())
+            }
+        }
+        canvas.drawCircle(
+            center = Offset(size.width / 2f, size.height / 2f),
+            radius = size.minDimension / 2f,
+            paint = glowPaint
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Dashboard Screen
+// ─────────────────────────────────────────────────────────────
 @Composable
 fun DashboardScreen(
     navController: NavController,
@@ -59,12 +125,16 @@ fun DashboardScreen(
     onLogout: () -> Unit
 ) {
     val currentUser = remember { FirebaseAuth.getInstance().currentUser }
-    val userName = currentUser?.displayName ?: currentUser?.email?.substringBefore("@") ?: "Usuario"
+    val userName = currentUser?.displayName
+        ?: currentUser?.email?.substringBefore("@")
+        ?: "Usuario"
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    val surface = MaterialTheme.colorScheme.surface
+    val background = MaterialTheme.colorScheme.background
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val isDark = isSystemInDarkTheme()
+
+    Surface(modifier = Modifier.fillMaxSize(), color = background) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -74,7 +144,7 @@ fun DashboardScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Header
+            // ── HEADER ────────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -93,20 +163,31 @@ fun DashboardScreen(
                         text = "Hola, $userName",
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                            color = onBackground.copy(alpha = 0.6f)
                         )
                     )
                 }
 
-                Image(
-                    painter = painterResource(id = R.drawable.ic_profile),
-                    contentDescription = "Perfil",
+                // Perfil con halo de luz — Actualizado
+                Box(
                     modifier = Modifier
                         .size(52.dp)
+                        .colorGlow(BrandOrange, radius = 45f, alpha = 0.28f)
+                        .shadow(
+                            10.dp, CircleShape,
+                            spotColor = BrandOrange.copy(alpha = 0.22f),
+                            ambientColor = BrandOrange.copy(alpha = 0.10f)
+                        )
                         .clip(CircleShape)
-                        .clickable { navController.navigate(BottomNavItem.Profile.route) },
-                    contentScale = ContentScale.Crop
-                )
+                        .clickable { navController.navigate(BottomNavItem.Profile.route) }
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_profile),
+                        contentDescription = "Perfil",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -115,29 +196,34 @@ fun DashboardScreen(
                 text = "Accesos rápidos",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = onBackground
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ FIX: Column + Rows en lugar de LazyVerticalGrid
-            // LazyVerticalGrid dentro de verticalScroll causa crash por constraints infinitos
+            // ── QUICK ACTIONS GRID ────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
-                        QuickActionCard("Mis Cursos", Icons.Rounded.School, BrandOrange) {
-                            navController.navigate("certificates")
-                        }
+                        QuickActionCard(
+                            title = "Mis Cursos",
+                            icon = Icons.Rounded.School,
+                            color = BrandOrange,
+                            surfaceColor = surface,
+                            onClick = { navController.navigate("certificates") }
+                        )
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        // ✅ FIX: Cambiado de BrandDeepBlue (muy oscuro/opaco)
-                        //         a NetworkBlue (azul vibrante y legible)
-                        QuickActionCard("Mi Red", Icons.Rounded.Hub, NetworkBlue) {
-                            navController.navigate("stats")
-                        }
+                        QuickActionCard(
+                            title = "Mi Red",
+                            icon = Icons.Rounded.Hub,
+                            color = NetworkBlue,
+                            surfaceColor = surface,
+                            onClick = { navController.navigate("stats") }
+                        )
                     }
                 }
                 Row(
@@ -145,14 +231,22 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
-                        QuickActionCard("Escáner ID", Icons.Rounded.DocumentScanner, Color(0xFFAB47BC)) {
-                            navController.navigate("document_scanner")
-                        }
+                        QuickActionCard(
+                            title = "Escáner ID",
+                            icon = Icons.Rounded.DocumentScanner,
+                            color = Color(0xFFAB47BC),
+                            surfaceColor = surface,
+                            onClick = { navController.navigate("document_scanner") }
+                        )
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        QuickActionCard("Mi CV", Icons.Rounded.ContactPage, Color(0xFF66BB6A)) {
-                            navController.navigate("resume")
-                        }
+                        QuickActionCard(
+                            title = "Mi CV",
+                            icon = Icons.Rounded.ContactPage,
+                            color = Color(0xFF66BB6A),
+                            surfaceColor = surface,
+                            onClick = { navController.navigate("resume") }
+                        )
                     }
                 }
             }
@@ -161,7 +255,9 @@ fun DashboardScreen(
 
             UpdateCard(
                 githubOwner = "VictorVasquezZT2005",
-                githubRepo = "MindBox"
+                githubRepo = "MindBox",
+                surfaceColor = surface,
+                isDark = isDark
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -169,52 +265,32 @@ fun DashboardScreen(
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+//  Quick Action Card
+// ─────────────────────────────────────────────────────────────
 @Composable
 fun QuickActionCard(
     title: String,
     icon: ImageVector,
     color: Color,
+    surfaceColor: Color,
     onClick: () -> Unit
 ) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
     val shape = RoundedCornerShape(28.dp)
-
-    // ✅ FIX: El tint del ícono ahora usa blanco para colores muy oscuros
-    //         y el propio color para colores brillantes — siempre visible
-    val iconTint = if (color.luminance() < 0.15f) Color.White else color
-
-    // ✅ FIX: Opacidad del círculo aumentada de 0.25f a 0.30f para más contraste
-    val iconBgAlpha = if (color.luminance() < 0.15f) 0.35f else 0.25f
+    val onBackground = MaterialTheme.colorScheme.onBackground
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(120.dp)
-            .shadow(
-                elevation = 10.dp,
+            .colorGlow(color, radius = 55f, alpha = 0.22f)
+            .liquidGlassBackground(
+                color = color,
+                surfaceColor = surfaceColor,
                 shape = shape,
-                spotColor = color.copy(alpha = 0.4f)
-            )
-            .background(surfaceColor, shape)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        color.copy(alpha = 0.30f),
-                        color.copy(alpha = 0.10f)
-                    )
-                ),
-                shape = shape
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.5f),
-                        Color.Transparent,
-                        color.copy(alpha = 0.2f)
-                    )
-                ),
-                shape = shape
+                glassAlpha = 0.13f,
+                borderAlpha = 0.38f,
+                elevation = 10.dp
             )
             .clip(shape)
             .clickable(
@@ -230,49 +306,72 @@ fun QuickActionCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(color.copy(alpha = iconBgAlpha), CircleShape),
+                    .size(42.dp)
+                    .colorGlow(color, radius = 30f, alpha = 0.30f)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color.copy(alpha = 0.28f),
+                                color.copy(alpha = 0.10f)
+                            )
+                        ),
+                        shape = CircleShape
+                    )
+                    .border(
+                        1.dp,
+                        Brush.linearGradient(
+                            listOf(Color.White.copy(alpha = 0.45f), Color.Transparent)
+                        ),
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = title,
-                    // ✅ FIX: iconTint garantiza visibilidad sin importar el color de fondo
-                    tint = iconTint,
-                    modifier = Modifier.size(24.dp)
+                    tint = color,
+                    modifier = Modifier.size(22.dp)
                 )
             }
+
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = onBackground,
                 fontSize = 15.sp
             )
         }
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+//  Update Card
+// ─────────────────────────────────────────────────────────────
 @Composable
-fun UpdateCard(githubOwner: String, githubRepo: String) {
+fun UpdateCard(
+    githubOwner: String,
+    githubRepo: String,
+    surfaceColor: Color,
+    isDark: Boolean
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val cardShape = RoundedCornerShape(32.dp)
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val background = MaterialTheme.colorScheme.background
 
     var hasNotificationPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                        PackageManager.PERMISSION_GRANTED
             } else true
         )
     }
-
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { hasNotificationPermission = it }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        hasNotificationPermission = it
+    }
 
     val currentVersion = BuildConfig.VERSION_NAME
     var latestVersion by remember { mutableStateOf<String?>(null) }
@@ -306,34 +405,46 @@ fun UpdateCard(githubOwner: String, githubRepo: String) {
         }
     }
 
-    Surface(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 12.dp,
+            .colorGlow(BrandOrange, radius = 60f, alpha = 0.18f)
+            .liquidGlassBackground(
+                color = BrandOrange,
+                surfaceColor = surfaceColor,
                 shape = cardShape,
-                spotColor = BrandOrange.copy(alpha = 0.2f)
-            ),
-        shape = cardShape,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-        border = BorderStroke(
-            width = 0.5.dp,
-            brush = Brush.verticalGradient(
-                listOf(Color.White.copy(alpha = 0.5f), Color.Transparent)
+                glassAlpha = 0.08f,
+                borderAlpha = 0.32f,
+                elevation = 12.dp
             )
-        )
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(BrandOrange.copy(alpha = 0.15f), CircleShape),
+                        .colorGlow(BrandOrange, radius = 28f, alpha = 0.28f)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    BrandOrange.copy(alpha = 0.25f),
+                                    BrandOrange.copy(alpha = 0.08f)
+                                )
+                            ),
+                            shape = CircleShape
+                        )
+                        .border(
+                            1.dp,
+                            Brush.linearGradient(
+                                listOf(Color.White.copy(alpha = 0.40f), Color.Transparent)
+                            ),
+                            CircleShape
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Rounded.AutoAwesome,
-                        null,
+                        contentDescription = null,
                         tint = BrandOrange,
                         modifier = Modifier.size(20.dp)
                     )
@@ -351,37 +462,34 @@ fun UpdateCard(githubOwner: String, githubRepo: String) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(CircleShape)
                     .background(
-                        MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                        if (isDark) background.copy(alpha = 0.35f)
+                        else onBackground.copy(alpha = 0.05f)
+                    )
+                    .border(
+                        0.5.dp,
+                        onBackground.copy(alpha = if (isDark) 0.08f else 0.10f),
                         CircleShape
                     )
-                    .border(0.5.dp, Color.Black.copy(alpha = 0.05f), CircleShape)
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("ACTUAL", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text(currentVersion, fontWeight = FontWeight.Bold)
+                    Text("ACTUAL", style = MaterialTheme.typography.labelSmall, color = onBackground.copy(alpha = 0.45f))
+                    Text(currentVersion, fontWeight = FontWeight.Bold, color = onBackground)
                 }
                 if (updateAvailable) {
                     Icon(
                         Icons.Rounded.ChevronRight,
-                        null,
-                        tint = Color.LightGray,
+                        contentDescription = null,
+                        tint = onBackground.copy(alpha = 0.3f),
                         modifier = Modifier.size(16.dp)
                     )
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            "NUEVA",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = BrandRust
-                        )
-                        Text(
-                            "v$latestVersion",
-                            fontWeight = FontWeight.Bold,
-                            color = BrandRust
-                        )
+                        Text("NUEVA", style = MaterialTheme.typography.labelSmall, color = BrandRust)
+                        Text("v$latestVersion", fontWeight = FontWeight.Bold, color = BrandRust)
                     }
                 } else {
                     Text(
@@ -397,89 +505,101 @@ fun UpdateCard(githubOwner: String, githubRepo: String) {
 
             when {
                 checking -> LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(CircleShape),
+                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
                     color = BrandOrange,
-                    trackColor = BrandOrange.copy(alpha = 0.1f)
+                    trackColor = BrandOrange.copy(alpha = 0.10f)
                 )
-                isDownloading -> {
-                    Column {
-                        LinearProgressIndicator(
-                            progress = { downloadProgress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(10.dp)
-                                .clip(CircleShape),
-                            color = BrandOrange,
-                            trackColor = BrandOrange.copy(alpha = 0.1f)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "${(downloadProgress * 100).toInt()}% descargado",
-                            modifier = Modifier.align(Alignment.End),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = BrandOrange
-                        )
-                    }
+                isDownloading -> Column {
+                    LinearProgressIndicator(
+                        progress = { downloadProgress },
+                        modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape),
+                        color = BrandOrange,
+                        trackColor = BrandOrange.copy(alpha = 0.10f)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "${(downloadProgress * 100).toInt()}% descargado",
+                        modifier = Modifier.align(Alignment.End),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = BrandOrange
+                    )
                 }
                 downloadedFile != null -> {
-                    Button(
-                        onClick = { installApk(context, downloadedFile!!) },
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
-                            .shadow(8.dp, CircleShape, spotColor = BrandDeepBlue),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandDeepBlue)
+                            .colorGlow(BrandDeepBlue, radius = 40f, alpha = 0.35f)
+                            .clip(CircleShape)
+                            .background(BrandDeepBlue.copy(alpha = 0.80f))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(alpha = 0.18f), Color.Transparent)
+                                )
+                            )
+                            .border(
+                                0.8.dp,
+                                Brush.linearGradient(
+                                    listOf(Color.White.copy(alpha = 0.40f), Color.Transparent),
+                                    start = Offset(0f, 0f), end = Offset(200f, 100f)
+                                ),
+                                CircleShape
+                            )
+                            .clickable { installApk(context, downloadedFile!!) },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Rounded.InstallMobile, null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("INSTALAR AHORA", fontWeight = FontWeight.ExtraBold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.InstallMobile, contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("INSTALAR AHORA", fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        }
                     }
                 }
                 updateAvailable -> {
-                    Button(
-                        onClick = {
-                            startDownload(context, downloadUrl, scope) { file, progress, downloading ->
-                                downloadedFile = file
-                                downloadProgress = progress
-                                isDownloading = downloading
-                            }
-                        },
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
-                            .shadow(8.dp, CircleShape, spotColor = BrandOrange),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandOrange)
+                            .colorGlow(BrandOrange, radius = 40f, alpha = 0.35f)
+                            .clip(CircleShape)
+                            .background(BrandOrange.copy(alpha = 0.80f))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(alpha = 0.20f), Color.Transparent)
+                                )
+                            )
+                            .border(
+                                0.8.dp,
+                                Brush.linearGradient(
+                                    listOf(Color.White.copy(alpha = 0.45f), Color.Transparent),
+                                    start = Offset(0f, 0f), end = Offset(200f, 100f)
+                                ),
+                                CircleShape
+                            )
+                            .clickable {
+                                startDownload(context, downloadUrl, scope) { file, progress, downloading ->
+                                    downloadedFile = file
+                                    downloadProgress = progress
+                                    isDownloading = downloading
+                                }
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Rounded.Download, null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("DESCARGAR ACTUALIZACIÓN", fontWeight = FontWeight.ExtraBold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Download, contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("DESCARGAR ACTUALIZACIÓN", fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        }
                     }
                 }
-                else -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            Icons.Rounded.CheckCircle,
-                            null,
-                            tint = Color(0xFF2E7D32),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "MindBox está al día",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFF2E7D32),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                else -> Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("MindBox está al día", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
                 }
             }
         }

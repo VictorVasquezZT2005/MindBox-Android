@@ -37,7 +37,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
     val db = FirebaseFirestore.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-    // --- Estados del Formulario ---
     var title by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var issueDate by remember { mutableStateOf("Seleccionar fecha") }
@@ -57,7 +56,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
         selectedPdfUri = uri
     }
 
-    // --- Cargar datos iniciales ---
     LaunchedEffect(certificateId) {
         db.collection("users").document(userId).collection("certificates").document(certificateId)
             .get().addOnSuccessListener { doc ->
@@ -78,7 +76,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
             }
     }
 
-    // --- Diálogo de Fecha Corregido (Desfase UTC) ---
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -116,17 +113,15 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                             onClick = {
                                 isSaving = true
                                 val bucketId = "69bb74c9003b6b2c2f98"
+                                val projectId = "69bafc2400163f8e22ea"
 
                                 scope.launch {
                                     try {
                                         var finalPdfUrl = currentPdfUrl
 
-                                        // Si el usuario seleccionó un NUEVO archivo, subirlo a Appwrite
                                         if (selectedPdfUri != null) {
                                             val inputStream = context.contentResolver.openInputStream(selectedPdfUri!!)
                                             val bytes = inputStream?.readBytes() ?: byteArrayOf()
-
-                                            // Estructura de "carpeta": userId/certId/nombre_rev.pdf
                                             val fileNamePath = "$userId/$certificateId/${title.replace(" ", "_").lowercase()}_rev.pdf"
 
                                             val inputFile = io.appwrite.models.InputFile.fromBytes(
@@ -141,10 +136,10 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                                                 file = inputFile
                                             )
 
-                                            finalPdfUrl = "https://sfo.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/${fileResponse.id}/view?project=69bafc2400163f8e22ea"
+                                            // ✅ URL CORREGIDA CON ID Y MODE ADMIN
+                                            finalPdfUrl = "https://sfo.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/${fileResponse.id}/view?project=$projectId&mode=admin"
                                         }
 
-                                        // Actualizar Firestore
                                         val updatedCert = Certificate(
                                             id = certificateId,
                                             title = title,
@@ -165,9 +160,8 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                                             }
                                             .addOnFailureListener {
                                                 isSaving = false
-                                                Toast.makeText(context, "Error al actualizar BD", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show()
                                             }
-
                                     } catch (e: Exception) {
                                         isSaving = false
                                         Toast.makeText(context, "Error Appwrite: ${e.message}", Toast.LENGTH_LONG).show()
@@ -197,8 +191,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
             ) {
                 if (isSaving) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
-                Text("Plataforma: $platformType", style = MaterialTheme.typography.labelLarge, color = colorScheme.primary)
-
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -213,10 +205,7 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.outlinedCardColors(containerColor = colorScheme.surface)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.EditCalendar, null, tint = colorScheme.primary)
                         Spacer(Modifier.width(12.dp))
                         Column {
@@ -232,10 +221,7 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.PictureAsPdf,
                             null,
@@ -243,9 +229,7 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                         )
                         Spacer(Modifier.width(12.dp))
                         Column {
-                            val text = if (selectedPdfUri != null) "Nuevo archivo seleccionado"
-                            else if (currentPdfUrl != null) "Archivo actual guardado"
-                            else "No hay archivo adjunto"
+                            val text = if (selectedPdfUri != null) "Nuevo archivo" else if (currentPdfUrl != null) "Archivo actual" else "Sin archivo"
                             Text(text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                             Text("Toca para cambiar", style = MaterialTheme.typography.labelSmall, color = colorScheme.outline)
                         }
@@ -260,7 +244,6 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                     minLines = 4,
                     shape = RoundedCornerShape(12.dp)
                 )
-
                 Spacer(modifier = Modifier.height(30.dp))
             }
         }

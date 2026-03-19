@@ -12,7 +12,6 @@ object AppwriteHelper {
         client = Client(context)
             .setEndpoint("https://sfo.cloud.appwrite.io/v1")
             .setProject("69bafc2400163f8e22ea")
-            .setSelfSigned(true)
 
         storage = Storage(client)
     }

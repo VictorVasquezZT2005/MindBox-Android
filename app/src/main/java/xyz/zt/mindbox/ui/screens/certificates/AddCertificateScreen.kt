@@ -38,7 +38,6 @@ fun AddCertificateScreen(navController: NavController) {
     val db = FirebaseFirestore.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-    // --- Estados del Formulario ---
     var title by remember { mutableStateOf("") }
     var platformType by remember { mutableStateOf("Carlos Slim") }
     var customPlatform by remember { mutableStateOf("") }
@@ -56,7 +55,6 @@ fun AddCertificateScreen(navController: NavController) {
         selectedPdfUri = uri
     }
 
-    // --- Función para guardar en Firestore ---
     fun saveCertificateData(certId: String, finalPlatform: String, pdfUrl: String?) {
         val cert = Certificate(
             id = certId,
@@ -82,17 +80,14 @@ fun AddCertificateScreen(navController: NavController) {
             }
     }
 
-    // --- Diálogo de Fecha Corregido (Desfase UTC) ---
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { utcMillis ->
-                        // Usamos UTC para que no reste horas por la zona horaria local
                         val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
                         calendar.timeInMillis = utcMillis
-
                         val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
                             timeZone = TimeZone.getTimeZone("UTC")
                         }
@@ -123,15 +118,16 @@ fun AddCertificateScreen(navController: NavController) {
                             isSaving = true
                             val certId = UUID.randomUUID().toString()
                             val finalPlatform = if (platformType == "Otro") customPlatform else platformType
+
+                            // IDs de Appwrite
                             val bucketId = "69bb74c9003b6b2c2f98"
+                            val projectId = "69bafc2400163f8e22ea"
 
                             scope.launch {
                                 try {
                                     if (selectedPdfUri != null) {
                                         val inputStream = context.contentResolver.openInputStream(selectedPdfUri!!)
                                         val bytes = inputStream?.readBytes() ?: byteArrayOf()
-
-                                        // Nombre con ruta: userId/certId/nombre.pdf
                                         val fileNamePath = "$userId/$certId/${title.replace(" ", "_").lowercase()}.pdf"
 
                                         val inputFile = io.appwrite.models.InputFile.fromBytes(
@@ -140,15 +136,14 @@ fun AddCertificateScreen(navController: NavController) {
                                             mimeType = "application/pdf"
                                         )
 
-                                        // 1. Subir a Appwrite
                                         val fileResponse = AppwriteHelper.storage.createFile(
                                             bucketId = bucketId,
                                             fileId = io.appwrite.ID.unique(),
                                             file = inputFile
                                         )
 
-                                        // 2. URL de visualización corregida
-                                        val fileUrl = "https://sfo.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/${fileResponse.id}/view?project=69bafc2400163f8e22ea"
+                                        // ✅ URL CORREGIDA CON ID Y MODE ADMIN
+                                        val fileUrl = "https://sfo.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/${fileResponse.id}/view?project=$projectId&mode=admin"
 
                                         saveCertificateData(certId, finalPlatform, fileUrl)
                                     } else {
@@ -209,7 +204,6 @@ fun AddCertificateScreen(navController: NavController) {
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // Selector de Fecha
             OutlinedCard(
                 onClick = { showDatePicker = true },
                 modifier = Modifier.fillMaxWidth(),
@@ -238,7 +232,6 @@ fun AddCertificateScreen(navController: NavController) {
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // Selector de PDF
             Text("Archivo de respaldo", style = MaterialTheme.typography.labelLarge)
             OutlinedCard(
                 onClick = { pdfLauncher.launch("application/pdf") },
@@ -264,7 +257,6 @@ fun AddCertificateScreen(navController: NavController) {
                 minLines = 3,
                 shape = RoundedCornerShape(12.dp)
             )
-
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
