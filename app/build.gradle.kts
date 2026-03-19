@@ -87,4 +87,5 @@ dependencies {
     implementation("commons-codec:commons-codec:1.15")
     implementation("com.github.CanHub:Android-Image-Cropper:4.5.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("io.appwrite:sdk-for-android:5.1.0")
 }

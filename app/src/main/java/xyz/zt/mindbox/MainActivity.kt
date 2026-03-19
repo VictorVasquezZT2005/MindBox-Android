@@ -38,12 +38,18 @@ import xyz.zt.mindbox.ui.nav.MindBoxNavGraph
 import xyz.zt.mindbox.ui.theme.*
 import xyz.zt.mindbox.ui.dashboard.screens.notes.NotesViewModel
 import xyz.zt.mindbox.ui.dashboard.screens.reminders.RemindersViewModel
+// ✅ IMPORTANTE: Importar tu Helper
+import xyz.zt.mindbox.utils.AppwriteHelper
 
 class MainActivity : ComponentActivity() {
     private val auth by lazy { FirebaseAuth.getInstance() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ✅ SOLUCIÓN AL ERROR: Inicializar Appwrite antes de cualquier otra cosa
+        AppwriteHelper.init(applicationContext)
+
         enableEdgeToEdge()
 
         setContent {
@@ -266,7 +272,6 @@ fun LiquidBottomBar(
                                         )
                                 )
 
-                                // ✅ Labels siempre visibles, solo cambian color y peso
                                 Text(
                                     text = tab.title,
                                     style = MaterialTheme.typography.labelSmall.copy(

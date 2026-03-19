@@ -23,8 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.launch
 import xyz.zt.mindbox.data.model.Certificate
+import xyz.zt.mindbox.utils.AppwriteHelper
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -32,11 +33,12 @@ import java.util.*
 @Composable
 fun AddCertificateScreen(navController: NavController) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val colorScheme = MaterialTheme.colorScheme
     val db = FirebaseFirestore.getInstance()
-    val storage = FirebaseStorage.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+    // --- Estados del Formulario ---
     var title by remember { mutableStateOf("") }
     var platformType by remember { mutableStateOf("Carlos Slim") }
     var customPlatform by remember { mutableStateOf("") }
@@ -54,15 +56,47 @@ fun AddCertificateScreen(navController: NavController) {
         selectedPdfUri = uri
     }
 
+    // --- Función para guardar en Firestore ---
+    fun saveCertificateData(certId: String, finalPlatform: String, pdfUrl: String?) {
+        val cert = Certificate(
+            id = certId,
+            title = title,
+            platform = finalPlatform,
+            issueDate = if (selectedDateText == "Seleccionar fecha") "" else selectedDateText,
+            folio = idInput,
+            score = score,
+            notes = notes,
+            pdfUrl = pdfUrl
+        )
+
+        db.collection("users").document(userId)
+            .collection("certificates").document(certId)
+            .set(cert)
+            .addOnSuccessListener {
+                Toast.makeText(context, "Logro guardado con éxito", Toast.LENGTH_SHORT).show()
+                navController.popBackStack()
+            }
+            .addOnFailureListener {
+                isSaving = false
+                Toast.makeText(context, "Error al guardar en Firestore", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    // --- Diálogo de Fecha Corregido (Desfase UTC) ---
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    val dateMillis = datePickerState.selectedDateMillis
-                    if (dateMillis != null) {
-                        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                        selectedDateText = formatter.format(Date(dateMillis))
+                    datePickerState.selectedDateMillis?.let { utcMillis ->
+                        // Usamos UTC para que no reste horas por la zona horaria local
+                        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                        calendar.timeInMillis = utcMillis
+
+                        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+                            timeZone = TimeZone.getTimeZone("UTC")
+                        }
+                        selectedDateText = formatter.format(calendar.time)
                     }
                     showDatePicker = false
                 }) { Text("Aceptar") }
@@ -70,9 +104,7 @@ fun AddCertificateScreen(navController: NavController) {
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        ) { DatePicker(state = datePickerState) }
     }
 
     Scaffold(
@@ -85,60 +117,52 @@ fun AddCertificateScreen(navController: NavController) {
                     }
                 },
                 actions = {
-                    if (!isSaving) {
-                        IconButton(
-                            onClick = {
-                                isSaving = true
-                                val finalPlatform = if (platformType == "Otro") customPlatform else platformType
-                                val certId = UUID.randomUUID().toString()
+                    IconButton(
+                        onClick = {
+                            if (title.isBlank()) return@IconButton
+                            isSaving = true
+                            val certId = UUID.randomUUID().toString()
+                            val finalPlatform = if (platformType == "Otro") customPlatform else platformType
+                            val bucketId = "69bb74c9003b6b2c2f98"
 
-                                fun uploadAndSave(pdfUrl: String?) {
-                                    val cert = Certificate(
-                                        id = certId,
-                                        title = title,
-                                        platform = finalPlatform,
-                                        issueDate = if (selectedDateText == "Seleccionar fecha") "" else selectedDateText,
-                                        folio = idInput,
-                                        score = score,
-                                        notes = notes,
-                                        pdfUrl = pdfUrl
-                                    )
+                            scope.launch {
+                                try {
+                                    if (selectedPdfUri != null) {
+                                        val inputStream = context.contentResolver.openInputStream(selectedPdfUri!!)
+                                        val bytes = inputStream?.readBytes() ?: byteArrayOf()
 
-                                    db.collection("users").document(userId)
-                                        .collection("certificates").document(certId)
-                                        .set(cert)
-                                        .addOnSuccessListener {
-                                            Toast.makeText(context, "Logro guardado", Toast.LENGTH_SHORT).show()
-                                            navController.popBackStack()
-                                        }
-                                        .addOnFailureListener {
-                                            isSaving = false
-                                            Toast.makeText(context, "Error al guardar", Toast.LENGTH_SHORT).show()
-                                        }
+                                        // Nombre con ruta: userId/certId/nombre.pdf
+                                        val fileNamePath = "$userId/$certId/${title.replace(" ", "_").lowercase()}.pdf"
+
+                                        val inputFile = io.appwrite.models.InputFile.fromBytes(
+                                            bytes = bytes,
+                                            filename = fileNamePath,
+                                            mimeType = "application/pdf"
+                                        )
+
+                                        // 1. Subir a Appwrite
+                                        val fileResponse = AppwriteHelper.storage.createFile(
+                                            bucketId = bucketId,
+                                            fileId = io.appwrite.ID.unique(),
+                                            file = inputFile
+                                        )
+
+                                        // 2. URL de visualización corregida
+                                        val fileUrl = "https://sfo.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/${fileResponse.id}/view?project=69bafc2400163f8e22ea"
+
+                                        saveCertificateData(certId, finalPlatform, fileUrl)
+                                    } else {
+                                        saveCertificateData(certId, finalPlatform, null)
+                                    }
+                                } catch (e: Exception) {
+                                    isSaving = false
+                                    Toast.makeText(context, "Error Appwrite: ${e.message}", Toast.LENGTH_LONG).show()
                                 }
-
-                                if (selectedPdfUri != null) {
-                                    val fileName = "${title.replace(" ", "_").lowercase()}_${certId.take(5)}.pdf"
-                                    val storageRef = storage.reference.child("users/$userId/certificates/$fileName")
-
-                                    storageRef.putFile(selectedPdfUri!!)
-                                        .addOnSuccessListener {
-                                            storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
-                                                uploadAndSave(downloadUrl.toString())
-                                            }
-                                        }
-                                        .addOnFailureListener {
-                                            isSaving = false
-                                            Toast.makeText(context, "Error al subir PDF", Toast.LENGTH_SHORT).show()
-                                        }
-                                } else {
-                                    uploadAndSave(null)
-                                }
-                            },
-                            enabled = title.isNotBlank() && !isSaving
-                        ) {
-                            Icon(Icons.Default.Done, "Guardar", tint = colorScheme.primary)
-                        }
+                            }
+                        },
+                        enabled = title.isNotBlank() && !isSaving
+                    ) {
+                        Icon(Icons.Default.Done, "Guardar", tint = colorScheme.primary)
                     }
                 }
             )
@@ -185,16 +209,14 @@ fun AddCertificateScreen(navController: NavController) {
                 shape = RoundedCornerShape(12.dp)
             )
 
+            // Selector de Fecha
             OutlinedCard(
                 onClick = { showDatePicker = true },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.outlinedCardColors(containerColor = colorScheme.surface)
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CalendarMonth, null, tint = colorScheme.primary)
                     Spacer(Modifier.width(12.dp))
                     Column {
@@ -216,26 +238,21 @@ fun AddCertificateScreen(navController: NavController) {
                 shape = RoundedCornerShape(12.dp)
             )
 
+            // Selector de PDF
             Text("Archivo de respaldo", style = MaterialTheme.typography.labelLarge)
             OutlinedCard(
                 onClick = { pdfLauncher.launch("application/pdf") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.PictureAsPdf,
                         null,
                         tint = if (selectedPdfUri != null) Color(0xFFF44336) else colorScheme.outline
                     )
                     Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = if (selectedPdfUri != null) "PDF seleccionado" else "Seleccionar archivo PDF",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text(if (selectedPdfUri != null) "PDF seleccionado" else "Seleccionar archivo PDF")
                 }
             }
 

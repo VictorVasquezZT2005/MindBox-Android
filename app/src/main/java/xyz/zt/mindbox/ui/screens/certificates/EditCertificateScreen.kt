@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,8 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.launch
 import xyz.zt.mindbox.data.model.Certificate
+import xyz.zt.mindbox.utils.AppwriteHelper
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -32,14 +32,15 @@ import java.util.*
 @Composable
 fun EditCertificateScreen(navController: NavController, certificateId: String) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val colorScheme = MaterialTheme.colorScheme
     val db = FirebaseFirestore.getInstance()
-    val storage = FirebaseStorage.getInstance()
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+    // --- Estados del Formulario ---
     var title by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    var issueDate by remember { mutableStateOf("") }
+    var issueDate by remember { mutableStateOf("Seleccionar fecha") }
     var platformType by remember { mutableStateOf("") }
     var idInput by remember { mutableStateOf("") }
     var score by remember { mutableStateOf("") }
@@ -56,6 +57,7 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
         selectedPdfUri = uri
     }
 
+    // --- Cargar datos iniciales ---
     LaunchedEffect(certificateId) {
         db.collection("users").document(userId).collection("certificates").document(certificateId)
             .get().addOnSuccessListener { doc ->
@@ -76,14 +78,19 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
             }
     }
 
+    // --- Diálogo de Fecha Corregido (Desfase UTC) ---
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                        issueDate = formatter.format(Date(it))
+                    datePickerState.selectedDateMillis?.let { utcMillis ->
+                        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                        calendar.timeInMillis = utcMillis
+                        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+                            timeZone = TimeZone.getTimeZone("UTC")
+                        }
+                        issueDate = formatter.format(calendar.time)
                     }
                     showDatePicker = false
                 }) { Text("Confirmar") }
@@ -91,9 +98,7 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        ) { DatePicker(state = datePickerState) }
     }
 
     Scaffold(
@@ -110,40 +115,63 @@ fun EditCertificateScreen(navController: NavController, certificateId: String) {
                         IconButton(
                             onClick = {
                                 isSaving = true
+                                val bucketId = "69bb74c9003b6b2c2f98"
 
-                                fun finalUpdate(pdfUrl: String?) {
-                                    val updatedCert = Certificate(
-                                        id = certificateId,
-                                        title = title,
-                                        platform = platformType,
-                                        issueDate = if (issueDate == "Seleccionar fecha") "" else issueDate,
-                                        folio = idInput,
-                                        score = score,
-                                        notes = notes,
-                                        pdfUrl = pdfUrl
-                                    )
+                                scope.launch {
+                                    try {
+                                        var finalPdfUrl = currentPdfUrl
 
-                                    db.collection("users").document(userId)
-                                        .collection("certificates").document(certificateId)
-                                        .set(updatedCert)
-                                        .addOnSuccessListener {
-                                            Toast.makeText(context, "Cambios guardados", Toast.LENGTH_SHORT).show()
-                                            navController.popBackStack()
+                                        // Si el usuario seleccionó un NUEVO archivo, subirlo a Appwrite
+                                        if (selectedPdfUri != null) {
+                                            val inputStream = context.contentResolver.openInputStream(selectedPdfUri!!)
+                                            val bytes = inputStream?.readBytes() ?: byteArrayOf()
+
+                                            // Estructura de "carpeta": userId/certId/nombre_rev.pdf
+                                            val fileNamePath = "$userId/$certificateId/${title.replace(" ", "_").lowercase()}_rev.pdf"
+
+                                            val inputFile = io.appwrite.models.InputFile.fromBytes(
+                                                bytes = bytes,
+                                                filename = fileNamePath,
+                                                mimeType = "application/pdf"
+                                            )
+
+                                            val fileResponse = AppwriteHelper.storage.createFile(
+                                                bucketId = bucketId,
+                                                fileId = io.appwrite.ID.unique(),
+                                                file = inputFile
+                                            )
+
+                                            finalPdfUrl = "https://sfo.cloud.appwrite.io/v1/storage/buckets/$bucketId/files/${fileResponse.id}/view?project=69bafc2400163f8e22ea"
                                         }
-                                        .addOnFailureListener { isSaving = false }
-                                }
 
-                                if (selectedPdfUri != null) {
-                                    val fileName = "${title.replace(" ", "_").lowercase()}_${certificateId.take(5)}_rev.pdf"
-                                    val storageRef = storage.reference.child("users/$userId/certificates/$fileName")
+                                        // Actualizar Firestore
+                                        val updatedCert = Certificate(
+                                            id = certificateId,
+                                            title = title,
+                                            platform = platformType,
+                                            issueDate = if (issueDate == "Seleccionar fecha") "" else issueDate,
+                                            folio = idInput,
+                                            score = score,
+                                            notes = notes,
+                                            pdfUrl = finalPdfUrl
+                                        )
 
-                                    storageRef.putFile(selectedPdfUri!!).addOnSuccessListener {
-                                        storageRef.downloadUrl.addOnSuccessListener { newUrl ->
-                                            finalUpdate(newUrl.toString())
-                                        }
-                                    }.addOnFailureListener { isSaving = false }
-                                } else {
-                                    finalUpdate(currentPdfUrl)
+                                        db.collection("users").document(userId)
+                                            .collection("certificates").document(certificateId)
+                                            .set(updatedCert)
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "Cambios guardados", Toast.LENGTH_SHORT).show()
+                                                navController.popBackStack()
+                                            }
+                                            .addOnFailureListener {
+                                                isSaving = false
+                                                Toast.makeText(context, "Error al actualizar BD", Toast.LENGTH_SHORT).show()
+                                            }
+
+                                    } catch (e: Exception) {
+                                        isSaving = false
+                                        Toast.makeText(context, "Error Appwrite: ${e.message}", Toast.LENGTH_LONG).show()
+                                    }
                                 }
                             },
                             enabled = title.isNotBlank()

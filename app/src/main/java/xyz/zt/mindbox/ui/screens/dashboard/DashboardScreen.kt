@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -47,6 +48,9 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+
+// ✅ Color vibrante para "Mi Red" — reemplaza BrandDeepBlue que era muy oscuro
+private val NetworkBlue = Color(0xFF29B6F6)
 
 @Composable
 fun DashboardScreen(
@@ -129,7 +133,9 @@ fun DashboardScreen(
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        QuickActionCard("Mi Red", Icons.Rounded.Hub, BrandDeepBlue) {
+                        // ✅ FIX: Cambiado de BrandDeepBlue (muy oscuro/opaco)
+                        //         a NetworkBlue (azul vibrante y legible)
+                        QuickActionCard("Mi Red", Icons.Rounded.Hub, NetworkBlue) {
                             navController.navigate("stats")
                         }
                     }
@@ -172,6 +178,13 @@ fun QuickActionCard(
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val shape = RoundedCornerShape(28.dp)
+
+    // ✅ FIX: El tint del ícono ahora usa blanco para colores muy oscuros
+    //         y el propio color para colores brillantes — siempre visible
+    val iconTint = if (color.luminance() < 0.15f) Color.White else color
+
+    // ✅ FIX: Opacidad del círculo aumentada de 0.25f a 0.30f para más contraste
+    val iconBgAlpha = if (color.luminance() < 0.15f) 0.35f else 0.25f
 
     Box(
         modifier = Modifier
@@ -218,13 +231,14 @@ fun QuickActionCard(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(color.copy(alpha = 0.25f), CircleShape),
+                    .background(color.copy(alpha = iconBgAlpha), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = title,
-                    tint = color,
+                    // ✅ FIX: iconTint garantiza visibilidad sin importar el color de fondo
+                    tint = iconTint,
                     modifier = Modifier.size(24.dp)
                 )
             }
